@@ -16,13 +16,22 @@ namespace FrontMoviles.Servicios
         private readonly HttpClient _httpClient;
         private const string BASE_URL = "http://localhost:56387/"; // Cambia por tu URL base
 
+
         public ApiService()
         {
-            _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri(BASE_URL);
-            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-        }
+            // ✅ USAR EL HANDLER PERSONALIZADO PARA JWT
+            var jwtHandler = new JwtHttpHandler();
 
+            _httpClient = new HttpClient(jwtHandler);
+            _httpClient.BaseAddress = new Uri(BASE_URL);
+            _httpClient.Timeout = TimeSpan.FromSeconds(30); // Timeout de 30 segundos
+
+            // Headers por defecto
+            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "ServiFlex-Mobile/1.0");
+
+            System.Diagnostics.Debug.WriteLine("✅ ApiService creado con JwtHttpHandler");
+        }
         #region Métodos de Autenticación por Sesión
 
         // Método para configurar headers de autenticación

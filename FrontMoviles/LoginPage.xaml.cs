@@ -1,4 +1,4 @@
-using FrontMoviles.Modelos;
+锘縰sing FrontMoviles.Modelos;
 using FrontMoviles.Servicios;
 using System.Text.RegularExpressions;
 
@@ -13,7 +13,41 @@ public partial class LoginPage : ContentPage
     {
         InitializeComponent();
         _apiService = new ApiService();
+
+        // Verificar si ya hay una sesi贸n activa
+        VerificarSesionExistente();
     }
+    private async void TestLogsClicked(object sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("馃敟馃敟馃敟 TEST LOG VISIBLE - ESTO DEBER脥A APARECER EN SALIDA 馃敟馃敟馃敟");
+        System.Console.WriteLine("馃摫馃摫馃摫 CONSOLE LOG TEST 馃摫馃摫馃摫");
+
+        await DisplayAlert("Test", "Revisa la ventana de Salida AHORA", "OK");
+    }
+    #region Verificaci贸n de sesi贸n existente
+
+    private async void VerificarSesionExistente()
+    {
+        try
+        {
+            // Limpiar sesiones expiradas autom谩ticamente
+            SessionManager.LimpiarSesionExpirada();
+
+            if (SessionManager.EstaLogueado())
+            {
+                // Si hay una sesi贸n v谩lida, navegar directamente al inicio
+                System.Diagnostics.Debug.WriteLine("Sesi贸n activa encontrada, navegando al inicio");
+                await NavigateToHome();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error verificando sesi贸n existente: {ex.Message}");
+            // En caso de error, continuar con el flujo normal de login
+        }
+    }
+
+    #endregion
 
     #region Validaciones
 
@@ -25,19 +59,19 @@ public partial class LoginPage : ContentPage
         // Validar email (obligatorio y formato)
         if (string.IsNullOrWhiteSpace(EmailEntry.Text))
         {
-            errores.Add("El correo electr髇ico es obligatorio");
+            errores.Add("El correo electr贸nico es obligatorio");
             esValido = false;
         }
         else if (!ValidarEmail(EmailEntry.Text))
         {
-            errores.Add("El formato del correo electr髇ico no es v醠ido");
+            errores.Add("El formato del correo electr贸nico no es v谩lido");
             esValido = false;
         }
 
-        // Validar contrase馻 (obligatorio)
+        // Validar contrase帽a (obligatorio)
         if (string.IsNullOrWhiteSpace(PasswordEntry.Text))
         {
-            errores.Add("La contrase馻 es obligatoria");
+            errores.Add("La contrase帽a es obligatoria");
             esValido = false;
         }
 
@@ -73,7 +107,7 @@ public partial class LoginPage : ContentPage
 
     private async void OnForgotPasswordTapped(object sender, EventArgs e)
     {
-        await DisplayAlert("Recuperar Contrase馻", "Funcionalidad de recuperaci髇 de contrase馻 pr髕imamente.", "OK");
+        await DisplayAlert("Recuperar Contrase帽a", "Funcionalidad de recuperaci贸n de contrase帽a pr贸ximamente.", "OK");
     }
 
     private async void OnRegisterTapped(object sender, EventArgs e)
@@ -92,9 +126,13 @@ public partial class LoginPage : ContentPage
 
         try
         {
+            // Log del intento de login
+            LogLoginAttempt(EmailEntry.Text?.Trim().ToLower());
+
             // Mostrar indicador de carga
             var button = sender as Button;
-            button.Text = "Iniciando sesi髇...";
+            var originalText = button.Text;
+            button.Text = "Iniciando sesi贸n...";
             button.IsEnabled = false;
 
             // Crear el objeto de request
@@ -113,48 +151,168 @@ public partial class LoginPage : ContentPage
             // Procesar respuesta
             if (response.Resultado && response.Sesion != null)
             {
-                // Login exitoso - Guardar sesi髇
-                SessionManager.GuardarSesion(response.Sesion, EmailEntry.Text?.Trim().ToLower());
-
-                await DisplayAlert("蓌ito", "Inicio de sesi髇 exitoso", "OK");
-
-                // Navegar a la p醙ina principal
-                //Application.Current.MainPage = new AppShell();
-
-                // O si quieres navegar a una p醙ina espec韋ica:
-                 await Navigation.PushAsync(new InicioPage());
+                // Login exitoso - Guardar sesi贸n con informaci贸n adicional
+                await OnLoginExitoso(response.Sesion, EmailEntry.Text?.Trim().ToLower());
             }
             else
             {
-                // Mostrar errores del servidor
-                var mensajesError = response.Error?.Select(e => e.Message) ?? new[] { "Credenciales incorrectas" };
-                var mensaje = string.Join("\n", mensajesError);
-                await DisplayAlert("Error de inicio de sesi髇", mensaje, "OK");
+                // Login fallido
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Credenciales incorrectas";
+                await OnLoginFallido(errorMessage);
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error inesperado: {ex.Message}", "OK");
+            await OnLoginFallido($"Error inesperado: {ex.Message}");
         }
         finally
         {
-            // Restaurar bot髇
-            if (sender is Button button)
+            // Restaurar bot贸n
+            if (sender is Button btn)
             {
-                button.Text = "Iniciar sesi髇";
-                button.IsEnabled = true;
+                btn.Text = "Iniciar sesi贸n";
+                btn.IsEnabled = true;
             }
         }
     }
 
     #endregion
 
-    #region Cleanup
+    #region Manejo de respuestas de login
+
+    private async Task OnLoginExitoso(Sesion sesion, string userEmail)
+    {
+        try
+        {
+            // Extraer nombre de usuario del email para display
+            var userName = userEmail.Split('@')[0];
+
+            // Guardar sesi贸n completa con informaci贸n adicional
+            SessionManager.GuardarSesion(sesion, userEmail, userName);
+
+            // Imprimir informaci贸n de sesi贸n para debugging
+            SessionManager.ImprimirInformacionSesion();
+
+            // Mostrar mensaje de 茅xito
+            await DisplayAlert("隆Bienvenido!", $"Sesi贸n iniciada correctamente", "Continuar");
+
+            // Navegar al inicio
+            await NavigateToHome();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error en login exitoso: {ex.Message}");
+            await DisplayAlert("Error", "Error al procesar la sesi贸n. Intenta nuevamente.", "OK");
+        }
+    }
+
+    private async Task OnLoginFallido(string mensaje)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"Login fallido: {mensaje}");
+
+            // Limpiar campos sensibles
+            PasswordEntry.Text = "";
+
+            // Mostrar error espec铆fico o gen茅rico
+            string errorMessage = mensaje;
+            if (mensaje.Contains("credenciales") || mensaje.Contains("usuario") || mensaje.Contains("contrase帽a"))
+            {
+                errorMessage = "Credenciales incorrectas. Verifica tu correo y contrase帽a.";
+            }
+            else if (mensaje.Contains("verificar") || mensaje.Contains("activar"))
+            {
+                errorMessage = "Tu cuenta no est谩 verificada. Revisa tu correo electr贸nico.";
+            }
+            else if (mensaje.Contains("conexi贸n") || mensaje.Contains("red"))
+            {
+                errorMessage = "Error de conexi贸n. Verifica tu conexi贸n a internet.";
+            }
+
+            await DisplayAlert("Error de inicio de sesi贸n", errorMessage, "OK");
+
+            // Enfocar en el campo de email para facilitar reintento
+            EmailEntry.Focus();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error manejando login fallido: {ex.Message}");
+            await DisplayAlert("Error", "Ocurri贸 un error inesperado", "OK");
+        }
+    }
+
+    #endregion
+
+    #region Navegaci贸n
+
+    private async Task NavigateToHome()
+    {
+        try
+        {
+            // Navegaci贸n a la p谩gina de inicio
+            await Navigation.PushAsync(new InicioPage());
+
+            // Opcional: Remover esta p谩gina del stack para evitar volver al login con "Atr谩s"
+            // Navigation.RemovePage(this);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navegando al inicio: {ex.Message}");
+            await DisplayAlert("Error", "Error al navegar al inicio", "OK");
+        }
+    }
+
+    #endregion
+
+    #region Lifecycle y Cleanup
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Limpiar campos al aparecer la p谩gina (excepto si viene de registro)
+        if (string.IsNullOrEmpty(EmailEntry.Text))
+        {
+            EmailEntry.Text = "";
+            PasswordEntry.Text = "";
+            PasswordEntry.IsPassword = true;
+            _isPasswordVisible = false;
+        }
+
+        // Enfocar en el campo de email
+        EmailEntry.Focus();
+    }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+
+        // Limpiar informaci贸n sensible
+        PasswordEntry.Text = "";
+
+        // Dispose del ApiService
         _apiService?.Dispose();
+    }
+
+    #endregion
+
+    #region Debugging y utilidades
+
+    private void LogLoginAttempt(string email)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== INTENTO DE LOGIN ===");
+            System.Diagnostics.Debug.WriteLine($"Email: {email}");
+            System.Diagnostics.Debug.WriteLine($"Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            System.Diagnostics.Debug.WriteLine($"Sesi贸n activa previa: {SessionManager.EstaLogueado()}");
+            System.Diagnostics.Debug.WriteLine("=======================");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error en log: {ex.Message}");
+        }
     }
 
     #endregion

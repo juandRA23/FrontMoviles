@@ -28,6 +28,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <StackLayout Grid.Column="0" Orientation="Horizontal">
@@ -58,6 +59,7 @@
                             </StackLayout>
                         </StackLayout>
 
+                        <!-- Botón notificaciones -->
                         <Button Grid.Column="1" 
                                 Text="🔔"
                                 FontSize="20"
@@ -66,7 +68,19 @@
                                 WidthRequest="40"
                                 HeightRequest="40"
                                 CornerRadius="20"
+                                Margin="0,0,10,0"
                                 Clicked="OnNotificacionesClicked" />
+
+                        <!-- Botón logout -->
+                        <Button Grid.Column="2" 
+                                Text="🚪"
+                                FontSize="18"
+                                BackgroundColor="Transparent"
+                                TextColor="White"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                CornerRadius="20"
+                                Clicked="OnLogoutClicked" />
                     </Grid>
 
                     <!-- Título principal -->

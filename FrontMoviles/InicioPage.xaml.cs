@@ -223,6 +223,114 @@ public partial class InicioPage : ContentPage
 
     #endregion
 
+    #region Logout
+
+    private async void OnLogoutClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Confirmar logout
+            bool confirmar = await DisplayAlert(
+                "Cerrar Sesión",
+                "¿Estás seguro que deseas cerrar sesión?",
+                "Sí, cerrar sesión",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            // Mostrar indicador de carga
+            var button = sender as Button;
+            var originalText = button.Text;
+            button.Text = "🔄";
+            button.IsEnabled = false;
+
+            // Log del logout
+            LogLogoutAttempt();
+
+            // Cerrar sesión en SessionManager
+            SessionManager.CerrarSesion();
+
+            // Verificar que la sesión se cerró correctamente
+            if (!SessionManager.EstaLogueado())
+            {
+                System.Diagnostics.Debug.WriteLine("Logout exitoso - sesión cerrada");
+
+                // Mostrar mensaje de confirmación
+                await DisplayAlert("Sesión Cerrada", "Has cerrado sesión exitosamente", "OK");
+
+                // Navegar de vuelta al login/inicio
+                await NavigateToLogin();
+            }
+            else
+            {
+                // Si por alguna razón no se cerró la sesión
+                await DisplayAlert("Error", "No se pudo cerrar la sesión. Intenta nuevamente.", "OK");
+
+                // Restaurar botón
+                button.Text = originalText;
+                button.IsEnabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error en logout: {ex.Message}");
+            await DisplayAlert("Error", "Ocurrió un error al cerrar sesión", "OK");
+
+            // Restaurar botón en caso de error
+            if (sender is Button btn)
+            {
+                btn.Text = "🚪";
+                btn.IsEnabled = true;
+            }
+        }
+    }
+
+    private async Task NavigateToLogin()
+    {
+        try
+        {
+            // Opción 1: Reemplazar la página principal completamente (recomendado)
+            Application.Current.MainPage = new AppShell();
+
+            // Opción 2: Navegar a LoginPage específicamente
+            // Application.Current.MainPage = new NavigationPage(new LoginPage());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navegando al login: {ex.Message}");
+
+            // Fallback: intentar navegar con Navigation
+            try
+            {
+                await Navigation.PushAsync(new LoginPage());
+            }
+            catch (Exception navEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error en navegación fallback: {navEx.Message}");
+            }
+        }
+    }
+
+    private void LogLogoutAttempt()
+    {
+        try
+        {
+            var userEmail = SessionManager.ObtenerEmailUsuario();
+            System.Diagnostics.Debug.WriteLine($"=== LOGOUT INICIADO ===");
+            System.Diagnostics.Debug.WriteLine($"Usuario: {userEmail}");
+            System.Diagnostics.Debug.WriteLine($"Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            System.Diagnostics.Debug.WriteLine($"Sesión activa antes: {SessionManager.EstaLogueado()}");
+            System.Diagnostics.Debug.WriteLine("=======================");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error en log de logout: {ex.Message}");
+        }
+    }
+
+    #endregion
+
     #region Eventos de Categorías
 
     private async void OnCategoriaClicked(object sender, EventArgs e)
@@ -267,7 +375,6 @@ public partial class InicioPage : ContentPage
         // Aquí navegarías a la página de servicios o cambiarías el contenido
     }
 
-    // ACTUALIZADO: Método para navegar a PublicarServicioPage
     private async void OnPublicarClicked(object sender, EventArgs e)
     {
         try
@@ -278,14 +385,6 @@ public partial class InicioPage : ContentPage
                 await DisplayAlert("Sesión requerida", "Debes iniciar sesión para publicar un servicio", "OK");
                 return;
             }
-
-            //if (SessionManager.SesionExpirada())
-            //{
-            //    await DisplayAlert("Sesión expirada", "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
-            //    SessionManager.CerrarSesion();
-            //    Application.Current.MainPage = new AppShell();
-            //    return;
-            //}
 
             // Navegar a la página de publicar servicio
             await Navigation.PushAsync(new PublicarServicioPage());

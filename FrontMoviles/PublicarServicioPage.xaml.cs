@@ -1,4 +1,4 @@
-using FrontMoviles.Servicios;
+﻿using FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
 
 namespace FrontMoviles;
@@ -8,149 +8,197 @@ public partial class PublicarServicioPage : ContentPage
     private readonly ApiService _apiService;
     private List<Categoria> _categorias = new List<Categoria>();
     private List<SubCategoria> _subCategorias = new List<SubCategoria>();
+    private List<SubCategoria> _subCategoriasFiltradas = new List<SubCategoria>();
     private List<SubCategoriaSeleccionada> _subCategoriasSeleccionadas = new List<SubCategoriaSeleccionada>();
 
     public PublicarServicioPage()
     {
         InitializeComponent();
         _apiService = new ApiService();
-        CargarDatos();
+        CargarDatosIniciales();
     }
 
-    #region Carga de datos iniciales
+    #region Configuración Inicial
 
-    private async void CargarDatos()
+    private async void CargarDatosIniciales()
     {
         try
         {
-            // Verificar sesi�n
+            System.Diagnostics.Debug.WriteLine("🔄 Iniciando carga de datos para PublicarServicio");
+
+            // Verificar sesión antes de cargar
             if (!SessionManager.EstaLogueado())
             {
-                MostrarError("No hay sesi�n activa. Por favor, inicia sesi�n.");
-                await Task.Delay(2000);
-                await RegresarALogin();
+                System.Diagnostics.Debug.WriteLine("❌ No hay sesión activa en PublicarServicio");
+                await DisplayAlert("Sesión requerida", "Debes iniciar sesión para publicar servicios", "OK");
+                await Navigation.PopAsync();
                 return;
             }
 
+            var userEmail = SessionManager.ObtenerEmailUsuario();
+            System.Diagnostics.Debug.WriteLine($"✅ Usuario logueado: {userEmail}");
+
+            // Mostrar loading
             MostrarEstado("loading");
 
-            // Cargar categor�as y subcategor�as en paralelo
-            var categoriesTask = _apiService.ObtenerCategoriasAsync();
-            var subCategoriesTask = _apiService.ObtenerSubCategoriasAsync();
+            // Cargar categorías y subcategorías en paralelo
+            var taskCategorias = _apiService.ObtenerCategoriasAsync();
+            var taskSubCategorias = _apiService.ObtenerSubCategoriasAsync();
 
-            await Task.WhenAll(categoriesTask, subCategoriesTask);
+            await Task.WhenAll(taskCategorias, taskSubCategorias);
 
-            var categoriesResponse = await categoriesTask;
-            var subCategoriesResponse = await subCategoriesTask;
+            var responseCategorias = await taskCategorias;
+            var responseSubCategorias = await taskSubCategorias;
 
-            // Verificar respuestas
-            if (!categoriesResponse.Resultado)
+            // Procesar categorías
+            if (responseCategorias.Resultado && responseCategorias.Categorias?.Any() == true)
             {
-                var errorMsg = categoriesResponse.Error?.FirstOrDefault()?.Message ?? "Error al cargar categor�as";
-                MostrarError(errorMsg);
+                _categorias = responseCategorias.Categorias;
+                System.Diagnostics.Debug.WriteLine($"✅ Categorías cargadas: {_categorias.Count}");
+                CargarCategoriasPicker();
+            }
+            else
+            {
+                var errorMsg = responseCategorias.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                System.Diagnostics.Debug.WriteLine($"❌ Error cargando categorías: {errorMsg}");
+                MostrarError($"Error al cargar categorías: {errorMsg}");
                 return;
             }
 
-            if (!subCategoriesResponse.Resultado)
+            // Procesar subcategorías
+            if (responseSubCategorias.Resultado && responseSubCategorias.SubCategorias?.Any() == true)
             {
-                var errorMsg = subCategoriesResponse.Error?.FirstOrDefault()?.Message ?? "Error al cargar subcategor�as";
-                MostrarError(errorMsg);
-                return;
+                _subCategorias = responseSubCategorias.SubCategorias;
+                System.Diagnostics.Debug.WriteLine($"✅ SubCategorías cargadas: {_subCategorias.Count}");
+            }
+            else
+            {
+                var errorMsg = responseSubCategorias.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                System.Diagnostics.Debug.WriteLine($"⚠️ Advertencia subcategorías: {errorMsg}");
+                await DisplayAlert("Advertencia", $"No se pudieron cargar subcategorías: {errorMsg}", "OK");
+                // Continuar sin subcategorías
             }
 
-            // Guardar datos
-            _categorias = categoriesResponse.Categorias ?? new List<Categoria>();
-            _subCategorias = subCategoriesResponse.SubCategorias ?? new List<SubCategoria>();
-
-            // Configurar UI
-            ConfigurarCategorias();
+            // Mostrar contenido
             MostrarEstado("content");
+            System.Diagnostics.Debug.WriteLine("✅ PublicarServicio cargado correctamente");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"💥 Error en CargarDatosIniciales: {ex.Message}");
             MostrarError($"Error inesperado: {ex.Message}");
         }
     }
 
-    private void ConfigurarCategorias()
+    private void CargarCategoriasPicker()
     {
         try
         {
-            // Limpiar picker
-            CategoriaPicker.Items.Clear();
-
-            // Agregar categor�as al picker
-            foreach (var categoria in _categorias)
-            {
-                CategoriaPicker.Items.Add(categoria.Nombre);
-            }
-
-            // Configurar subcategor�as como no seleccionadas
-            _subCategoriasSeleccionadas = _subCategorias.Select(sc => new SubCategoriaSeleccionada
-            {
-                SubCategoriaId = sc.SubCategoriaId,
-                Nombre = sc.Nombre,
-                IsSelected = false,
-                CategoriaId = sc.Categoria?.CategoriaId ?? 0
-            }).ToList();
+            CategoriaPicker.ItemsSource = null;
+            CategoriaPicker.ItemsSource = _categorias.Select(c => c.Nombre).ToList();
+            CategoriaPicker.Title = "Seleccionar categoría";
+            System.Diagnostics.Debug.WriteLine("✅ Picker de categorías configurado");
         }
         catch (Exception ex)
         {
-            DisplayAlert("Error", $"Error al configurar categor�as: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Error configurando picker: {ex.Message}");
+            DisplayAlert("Error", $"Error al cargar categorías en picker: {ex.Message}", "OK");
         }
     }
 
-    private async Task RegresarALogin()
+    private void MostrarEstado(string estado)
     {
-        try
-        {
-            SessionManager.CerrarSesion();
-            Application.Current.MainPage = new AppShell();
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Error al regresar al login: {ex.Message}", "OK");
-        }
+        LoadingGrid.IsVisible = estado == "loading";
+        ContentScrollView.IsVisible = estado == "content";
+        ErrorGrid.IsVisible = estado == "error";
+        System.Diagnostics.Debug.WriteLine($"🔄 Estado UI cambiado a: {estado}");
+    }
+
+    private void MostrarError(string mensaje)
+    {
+        ErrorMessageLabel.Text = mensaje;
+        MostrarEstado("error");
+        System.Diagnostics.Debug.WriteLine($"❌ Error mostrado: {mensaje}");
     }
 
     #endregion
 
-    #region Manejo de categor�as y subcategor�as
+    #region Eventos de UI
+
+    private async void OnBackClicked(object sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("⬅️ Regresando de PublicarServicio");
+        await Navigation.PopAsync();
+    }
+
+    private async void OnHelpClicked(object sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("❓ Mostrando ayuda");
+        await DisplayAlert("Ayuda",
+            "• Completa todos los campos obligatorios (*)\n" +
+            "• Selecciona una categoría principal\n" +
+            "• Puedes elegir múltiples subcategorías\n" +
+            "• El precio debe ser en colones por hora\n" +
+            "• Describe claramente tu disponibilidad", "OK");
+    }
+
+    private async void OnReintentarClicked(object sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("🔄 Reintentando cargar datos");
+        CargarDatosIniciales();
+    }
+
+    #endregion
+
+    #region Manejo de Categorías
 
     private void OnCategoriaSelectionChanged(object sender, EventArgs e)
     {
         try
         {
-            var picker = sender as Picker;
-            if (picker?.SelectedIndex >= 0 && picker.SelectedIndex < _categorias.Count)
+            if (CategoriaPicker.SelectedIndex >= 0 && CategoriaPicker.SelectedIndex < _categorias.Count)
             {
-                var categoriaSeleccionada = _categorias[picker.SelectedIndex];
-                ActualizarSubCategorias(categoriaSeleccionada.CategoriaId);
+                var categoriaSeleccionada = _categorias[CategoriaPicker.SelectedIndex];
+                System.Diagnostics.Debug.WriteLine($"📂 Categoría seleccionada: {categoriaSeleccionada.Nombre} (ID: {categoriaSeleccionada.CategoriaId})");
+
+                // Filtrar subcategorías por categoría seleccionada
+                _subCategoriasFiltradas = _subCategorias
+                    .Where(sc => sc.Categoria?.CategoriaId == categoriaSeleccionada.CategoriaId)
+                    .ToList();
+
+                System.Diagnostics.Debug.WriteLine($"📋 SubCategorías filtradas: {_subCategoriasFiltradas.Count}");
+
+                // Limpiar selecciones anteriores
+                _subCategoriasSeleccionadas.Clear();
+
+                // Cargar subcategorías en el contenedor
+                CargarSubCategoriasUI();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("📂 Categoría deseleccionada");
+                // Resetear subcategorías
+                LimpiarSubCategorias();
             }
         }
         catch (Exception ex)
         {
-            DisplayAlert("Error", $"Error al seleccionar categor�a: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Error en selección de categoría: {ex.Message}");
+            DisplayAlert("Error", $"Error al cargar subcategorías: {ex.Message}", "OK");
         }
     }
 
-    private void ActualizarSubCategorias(int categoriaId)
+    private void CargarSubCategoriasUI()
     {
         try
         {
-            // Limpiar contenedor
             SubCategoriasContainer.Children.Clear();
 
-            // Filtrar subcategor�as de la categor�a seleccionada
-            var subCategoriasCategoria = _subCategoriasSeleccionadas
-                .Where(sc => sc.CategoriaId == categoriaId)
-                .ToList();
-
-            if (!subCategoriasCategoria.Any())
+            if (!_subCategoriasFiltradas.Any())
             {
                 SubCategoriasContainer.Children.Add(new Label
                 {
-                    Text = "No hay subcategor�as disponibles para esta categor�a",
+                    Text = "No hay subcategorías disponibles para esta categoría",
                     TextColor = Colors.Gray,
                     FontSize = 14,
                     HorizontalOptions = LayoutOptions.Center,
@@ -159,44 +207,93 @@ public partial class PublicarServicioPage : ContentPage
                 return;
             }
 
-            // Crear checkboxes para cada subcategor�a
-            foreach (var subCategoria in subCategoriasCategoria)
+            foreach (var subCategoria in _subCategoriasFiltradas)
             {
-                var stackLayout = new StackLayout
+                var checkboxStack = new StackLayout
                 {
                     Orientation = StackOrientation.Horizontal,
-                    Spacing = 10
+                    Spacing = 10,
+                    Margin = new Thickness(0, 5)
                 };
 
-                var checkBox = new CheckBox
+                var checkbox = new CheckBox
                 {
-                    IsChecked = subCategoria.IsSelected,
-                    Color = Color.FromArgb("#4A7C59")
+                    IsChecked = false
                 };
 
                 var label = new Label
                 {
                     Text = subCategoria.Nombre,
-                    FontSize = 14,
                     VerticalOptions = LayoutOptions.Center,
-                    TextColor = Colors.Black
+                    FontSize = 14
                 };
 
-                // Evento para actualizar selecci�n
-                checkBox.CheckedChanged += (s, e) =>
-                {
-                    subCategoria.IsSelected = e.Value;
-                };
+                // Evento para manejar selección
+                checkbox.CheckedChanged += (s, e) => OnSubCategoriaCheckedChanged(subCategoria, e.Value);
 
-                stackLayout.Children.Add(checkBox);
-                stackLayout.Children.Add(label);
-                SubCategoriasContainer.Children.Add(stackLayout);
+                checkboxStack.Children.Add(checkbox);
+                checkboxStack.Children.Add(label);
+
+                SubCategoriasContainer.Children.Add(checkboxStack);
             }
+
+            System.Diagnostics.Debug.WriteLine($"✅ UI de subcategorías creada: {_subCategoriasFiltradas.Count} elementos");
         }
         catch (Exception ex)
         {
-            DisplayAlert("Error", $"Error al actualizar subcategor�as: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Error creando UI subcategorías: {ex.Message}");
+            DisplayAlert("Error", $"Error creando UI de subcategorías: {ex.Message}", "OK");
         }
+    }
+
+    private void OnSubCategoriaCheckedChanged(SubCategoria subCategoria, bool isChecked)
+    {
+        try
+        {
+            if (isChecked)
+            {
+                // Agregar a seleccionadas
+                if (!_subCategoriasSeleccionadas.Any(s => s.SubCategoriaId == subCategoria.SubCategoriaId))
+                {
+                    _subCategoriasSeleccionadas.Add(new SubCategoriaSeleccionada
+                    {
+                        SubCategoriaId = subCategoria.SubCategoriaId,
+                        Nombre = subCategoria.Nombre,
+                        IsSelected = true,
+                        CategoriaId = subCategoria.Categoria?.CategoriaId ?? 0
+                    });
+                    System.Diagnostics.Debug.WriteLine($"➕ SubCategoría agregada: {subCategoria.Nombre}");
+                }
+            }
+            else
+            {
+                // Remover de seleccionadas
+                _subCategoriasSeleccionadas.RemoveAll(s => s.SubCategoriaId == subCategoria.SubCategoriaId);
+                System.Diagnostics.Debug.WriteLine($"➖ SubCategoría removida: {subCategoria.Nombre}");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"📋 Total subcategorías seleccionadas: {_subCategoriasSeleccionadas.Count}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error en selección subcategoría: {ex.Message}");
+            DisplayAlert("Error", $"Error al manejar selección: {ex.Message}", "OK");
+        }
+    }
+
+    private void LimpiarSubCategorias()
+    {
+        SubCategoriasContainer.Children.Clear();
+        _subCategoriasSeleccionadas.Clear();
+        SubCategoriasContainer.Children.Add(new Label
+        {
+            Text = "Selecciona una categoría principal para ver las subcategorías",
+            TextColor = Colors.Gray,
+            FontSize = 14,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        });
+        System.Diagnostics.Debug.WriteLine("🧹 SubCategorías limpiadas");
     }
 
     #endregion
@@ -207,192 +304,245 @@ public partial class PublicarServicioPage : ContentPage
     {
         var errores = new List<string>();
 
-        // Validar t�tulo
+        // Validar campos obligatorios
         if (string.IsNullOrWhiteSpace(TituloEntry.Text))
-            errores.Add("El t�tulo es requerido");
+            errores.Add("El título es obligatorio");
 
-        // Validar descripci�n
         if (string.IsNullOrWhiteSpace(DescripcionEditor.Text))
-            errores.Add("La descripci�n es requerida");
+            errores.Add("La descripción es obligatoria");
 
-        // Validar precio
-        if (string.IsNullOrWhiteSpace(PrecioEntry.Text) || !decimal.TryParse(PrecioEntry.Text, out decimal precio) || precio <= 0)
-            errores.Add("El precio debe ser un n�mero mayor a 0");
+        if (string.IsNullOrWhiteSpace(PrecioEntry.Text))
+            errores.Add("El precio es obligatorio");
+        else if (!decimal.TryParse(PrecioEntry.Text, out decimal precio) || precio <= 0)
+            errores.Add("El precio debe ser un número válido mayor a 0");
 
-        // Validar disponibilidad
         if (string.IsNullOrWhiteSpace(DisponibilidadEntry.Text))
-            errores.Add("La disponibilidad es requerida");
+            errores.Add("La disponibilidad es obligatoria");
 
-        // Validar categor�a
         if (CategoriaPicker.SelectedIndex < 0)
-            errores.Add("Debe seleccionar una categor�a");
+            errores.Add("Debe seleccionar una categoría");
 
+        // Log de validación
         if (errores.Any())
         {
-            DisplayAlert("Errores de validaci�n", string.Join("\n", errores), "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Errores de validación: {string.Join(", ", errores)}");
+            DisplayAlert("Errores de validación", string.Join("\n", errores), "OK");
             return false;
         }
 
+        System.Diagnostics.Debug.WriteLine("✅ Formulario validado correctamente");
         return true;
     }
 
     #endregion
 
-    #region Eventos de botones
+    #region Publicar Servicio
 
     private async void OnPublicarClicked(object sender, EventArgs e)
     {
+        // ========== LOGS DE DIAGNÓSTICO ==========
+        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 INICIANDO PUBLICAR SERVICIO 🔥🔥🔥");
+
+        // 1. Verificar información de sesión
+        var sessionId = SessionManager.ObtenerSessionId();
+        var token = SessionManager.ObtenerToken();
+        var userEmail = SessionManager.ObtenerEmailUsuario();
+        var isLoggedIn = SessionManager.EstaLogueado();
+        var tokenExpired = SessionManager.TokenExpirado();
+
+        System.Diagnostics.Debug.WriteLine($"📱 SessionId: {sessionId}");
+        System.Diagnostics.Debug.WriteLine($"📧 Email: {userEmail}");
+        System.Diagnostics.Debug.WriteLine($"✅ Logueado: {isLoggedIn}");
+        System.Diagnostics.Debug.WriteLine($"⏰ Token expirado: {tokenExpired}");
+        System.Diagnostics.Debug.WriteLine($"🔑 Token existe: {!string.IsNullOrEmpty(token)}");
+        if (!string.IsNullOrEmpty(token))
+        {
+            System.Diagnostics.Debug.WriteLine($"🔑 Token (primeros 50 chars): {token.Substring(0, Math.Min(50, token.Length))}...");
+        }
+
+        // 2. Verificar si es GUID válido
+        if (Guid.TryParse(sessionId, out Guid parsedGuid))
+        {
+            System.Diagnostics.Debug.WriteLine($"✅ SessionId es GUID válido: {parsedGuid}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ SessionId NO es GUID válido: {sessionId}");
+        }
+
+        // 3. Mostrar info también en pantalla para confirmar
+        await DisplayAlert("Debug Info",
+            $"SessionId: {(!string.IsNullOrEmpty(sessionId) ? "✅" : "❌")}\n" +
+            $"Token: {(!string.IsNullOrEmpty(token) ? "✅" : "❌")}\n" +
+            $"Logueado: {(isLoggedIn ? "✅" : "❌")}\n" +
+            $"Token expirado: {(tokenExpired ? "❌" : "✅")}", "Continuar");
+
+        System.Diagnostics.Debug.WriteLine("========================================");
+
+        // Si algo falla, detener aquí para ver el problema
+        if (!isLoggedIn || string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(token))
+        {
+            System.Diagnostics.Debug.WriteLine("❌ PROBLEMA DETECTADO: Falta sesión, token o sessionId");
+            await DisplayAlert("Error de Sesión",
+                "Problema detectado:\n" +
+                $"- Logueado: {isLoggedIn}\n" +
+                $"- SessionId: {!string.IsNullOrEmpty(sessionId)}\n" +
+                $"- Token: {!string.IsNullOrEmpty(token)}", "OK");
+            return;
+        }
+
+        if (!ValidarFormulario())
+            return;
+
         try
         {
-            if (!ValidarFormulario())
-                return;
-
-            // Deshabilitar bot�n
-            PublicarButton.IsEnabled = false;
-            PublicarButton.Text = "Publicando...";
-
-            // Crear el servicio
-            var resultado = await CrearServicio();
-
-            if (resultado)
+            // Verificar sesión nuevamente
+            if (!SessionManager.EstaLogueado())
             {
-                await DisplayAlert("�xito", "Servicio publicado exitosamente", "OK");
-                await Navigation.PopAsync(); // Regresar a la p�gina anterior
+                System.Diagnostics.Debug.WriteLine("❌ Sesión expirada durante validación");
+                await DisplayAlert("Sesión requerida", "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
+                await Navigation.PopAsync();
+                return;
+            }
+
+            // Mostrar indicador de carga
+            var button = sender as Button;
+            var originalText = button.Text;
+            button.Text = "Publicando...";
+            button.IsEnabled = false;
+
+            // Obtener categoría seleccionada
+            var categoriaSeleccionada = _categorias[CategoriaPicker.SelectedIndex];
+            System.Diagnostics.Debug.WriteLine($"📂 Categoría seleccionada: {categoriaSeleccionada.Nombre} (ID: {categoriaSeleccionada.CategoriaId})");
+
+            // Convertir subcategorías seleccionadas al formato correcto
+            var subCategoriasParaEnviar = _subCategoriasSeleccionadas.Select(sc =>
+            {
+                var subCategoriaOriginal = _subCategoriasFiltradas.FirstOrDefault(x => x.SubCategoriaId == sc.SubCategoriaId);
+                return subCategoriaOriginal ?? new SubCategoria
+                {
+                    SubCategoriaId = sc.SubCategoriaId,
+                    Nombre = sc.Nombre,
+                    Categoria = categoriaSeleccionada
+                };
+            }).ToList();
+
+            System.Diagnostics.Debug.WriteLine($"📋 SubCategorías para enviar: {subCategoriasParaEnviar.Count}");
+
+            // CREAR EL REQUEST SEGÚN LA DOCUMENTACIÓN DEL API
+            var request = new ReqInsertarServicio
+            {
+                SesionId = sessionId, // Usar el sessionId ya verificado
+                Servicio = new Servicio
+                {
+                    ServicioId = 0, // Para nuevos servicios
+                    Usuario = null, // El servidor lo obtendrá de la sesión
+                    Categoria = categoriaSeleccionada,
+                    Titulo = TituloEntry.Text.Trim(),
+                    Descripcion = DescripcionEditor.Text.Trim(),
+                    Precio = decimal.Parse(PrecioEntry.Text.Trim()),
+                    Disponibilidad = DisponibilidadEntry.Text.Trim(),
+                    SubCategorias = subCategoriasParaEnviar,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                }
+            };
+
+            // Log del request completo
+            System.Diagnostics.Debug.WriteLine($"=== REQUEST PARA API ===");
+            System.Diagnostics.Debug.WriteLine($"SesionId: {request.SesionId}");
+            System.Diagnostics.Debug.WriteLine($"Título: {request.Servicio.Titulo}");
+            System.Diagnostics.Debug.WriteLine($"Descripción: {request.Servicio.Descripcion.Substring(0, Math.Min(50, request.Servicio.Descripcion.Length))}...");
+            System.Diagnostics.Debug.WriteLine($"Precio: {request.Servicio.Precio}");
+            System.Diagnostics.Debug.WriteLine($"Disponibilidad: {request.Servicio.Disponibilidad}");
+            System.Diagnostics.Debug.WriteLine($"Categoría ID: {request.Servicio.Categoria?.CategoriaId}");
+            System.Diagnostics.Debug.WriteLine($"Categoría Nombre: {request.Servicio.Categoria?.Nombre}");
+            System.Diagnostics.Debug.WriteLine($"SubCategorías Count: {request.Servicio.SubCategorias?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine("=======================");
+
+            // Verificar que el ApiService tenga el JwtHttpHandler
+            System.Diagnostics.Debug.WriteLine("🌐 Llamando al API...");
+
+            // Llamar al API
+            var response = await _apiService.CrearServicioAsync(request);
+
+            System.Diagnostics.Debug.WriteLine($"📡 Respuesta recibida - Resultado: {response.Resultado}");
+
+            if (response.Resultado)
+            {
+                System.Diagnostics.Debug.WriteLine($"✅ ÉXITO - ServicioId: {response.ServicioId}, Mensaje: {response.Mensaje}");
+                await DisplayAlert("¡Éxito!",
+                    $"Servicio publicado exitosamente.\nID: {response.ServicioId}\n{response.Mensaje}",
+                    "OK");
+
+                // Limpiar formulario
+                LimpiarFormulario();
+
+                // Opcional: Navegar de vuelta
+                await Navigation.PopAsync();
+            }
+            else
+            {
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido al publicar servicio";
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR API: {errorMessage}");
+
+                // Log de todos los errores
+                if (response.Error?.Any() == true)
+                {
+                    foreach (var error in response.Error)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error {error.ErrorCode}: {error.Message}");
+                    }
+                }
+
+                await DisplayAlert("Error", $"No se pudo publicar el servicio:\n{errorMessage}", "OK");
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error al publicar servicio: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"💥 EXCEPCIÓN: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"💥 StackTrace: {ex.StackTrace}");
+            await DisplayAlert("Error", $"Error inesperado: {ex.Message}", "OK");
         }
         finally
         {
-            // Rehabilitar bot�n
-            PublicarButton.IsEnabled = true;
-            PublicarButton.Text = "Publicar Servicio";
+            // Restaurar botón
+            if (sender is Button btn)
+            {
+                btn.Text = "Publicar Servicio";
+                btn.IsEnabled = true;
+            }
+
+            System.Diagnostics.Debug.WriteLine("🏁 FIN DE PUBLICAR SERVICIO");
         }
     }
 
     private async void OnGuardarBorradorClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("Borrador", "Funci�n de guardar borrador en desarrollo", "OK");
-    }
-
-    private async void OnBackClicked(object sender, EventArgs e)
-    {
-        bool salir = await DisplayAlert(
-            "Confirmar",
-            "�Est�s seguro que deseas salir? Los cambios no guardados se perder�n.",
-            "S�",
-            "Cancelar");
-
-        if (salir)
-        {
-            await Navigation.PopAsync();
-        }
-    }
-
-    private async void OnHelpClicked(object sender, EventArgs e)
-    {
-        await DisplayAlert(
-            "Ayuda",
-            "Consejos para publicar un buen servicio:\n\n" +
-            "� Usa un t�tulo claro y descriptivo\n" +
-            "� Describe detalladamente qu� incluye tu servicio\n" +
-            "� Especifica tu experiencia y metodolog�a\n" +
-            "� Define claramente tu disponibilidad\n" +
-            "� Selecciona las categor�as m�s relevantes",
-            "OK");
-    }
-
-    private async void OnReintentarClicked(object sender, EventArgs e)
-    {
-        CargarDatos();
+        System.Diagnostics.Debug.WriteLine("💾 Solicitud de guardar borrador");
+        await DisplayAlert("Guardar Borrador", "Funcionalidad de guardar borrador próximamente", "OK");
     }
 
     #endregion
 
-    #region Creaci�n de servicio
+    #region Utilidades
 
-    private async Task<bool> CrearServicio()
+    private void LimpiarFormulario()
     {
         try
         {
-            // Obtener categor�a seleccionada
-            var categoriaSeleccionada = _categorias[CategoriaPicker.SelectedIndex];
-
-            // Obtener subcategor�as seleccionadas
-            var subCategoriasSeleccionadas = _subCategoriasSeleccionadas
-                .Where(sc => sc.IsSelected)
-                .Select(sc => _subCategorias.First(sub => sub.SubCategoriaId == sc.SubCategoriaId))
-                .ToList();
-
-            // Crear el objeto servicio
-            var servicio = new Servicio
-            {
-                ServicioId = 0, // Nuevo servicio
-                Titulo = TituloEntry.Text?.Trim(),
-                Descripcion = DescripcionEditor.Text?.Trim(),
-                Precio = decimal.Parse(PrecioEntry.Text),
-                Disponibilidad = DisponibilidadEntry.Text?.Trim(),
-                Categoria = categoriaSeleccionada,
-                SubCategorias = subCategoriasSeleccionadas,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            };
-
-            // Crear el request
-            var request = new ReqInsertarServicio
-            {
-                SesionId = SessionManager.ObtenerSessionId(),
-                Servicio = servicio
-            };
-
-            // Llamar a la API
-            var response = await _apiService.CrearServicioAsync(request);
-
-            if (response.Resultado)
-            {
-                return true;
-            }
-            else
-            {
-                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
-
-                // Si el error indica sesi�n inv�lida, regresar al login
-                if (errorMessage.Contains("sesi�n") || errorMessage.Contains("autorizado") ||
-                    errorMessage.Contains("token") || errorMessage.Contains("inv�lida"))
-                {
-                    await DisplayAlert("Sesi�n Expirada", errorMessage, "OK");
-                    await RegresarALogin();
-                    return false;
-                }
-
-                await DisplayAlert("Error", $"Error al crear servicio: {errorMessage}", "OK");
-                return false;
-            }
+            TituloEntry.Text = "";
+            DescripcionEditor.Text = "";
+            PrecioEntry.Text = "";
+            DisponibilidadEntry.Text = "";
+            CategoriaPicker.SelectedIndex = -1;
+            LimpiarSubCategorias();
+            System.Diagnostics.Debug.WriteLine("🧹 Formulario limpiado");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error inesperado: {ex.Message}", "OK");
-            return false;
+            System.Diagnostics.Debug.WriteLine($"❌ Error limpiando formulario: {ex.Message}");
         }
-    }
-
-    #endregion
-
-    #region Estados de UI
-
-    private void MostrarEstado(string estado)
-    {
-        LoadingGrid.IsVisible = estado == "loading";
-        ContentScrollView.IsVisible = estado == "content";
-        ErrorGrid.IsVisible = estado == "error";
-    }
-
-    private void MostrarError(string mensaje)
-    {
-        ErrorMessageLabel.Text = mensaje;
-        MostrarEstado("error");
     }
 
     #endregion
@@ -403,6 +553,7 @@ public partial class PublicarServicioPage : ContentPage
     {
         base.OnDisappearing();
         _apiService?.Dispose();
+        System.Diagnostics.Debug.WriteLine("🚪 PublicarServicioPage cerrada");
     }
 
     #endregion

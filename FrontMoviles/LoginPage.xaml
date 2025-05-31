@@ -78,6 +78,12 @@
                 </Label>
             </VerticalStackLayout>
 
+            <Button Text="TEST LOGS" 
+        BackgroundColor="Red"
+        TextColor="White"
+        Clicked="TestLogsClicked" />
+
+
             <!-- Botón iniciar sesión -->
             <Button Text="Iniciar sesión" 
                     Style="{StaticResource PrimaryButton}"

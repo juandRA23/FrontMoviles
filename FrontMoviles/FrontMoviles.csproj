@@ -59,39 +59,41 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+		<!-- Agregado para manejo de JWT -->
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="InicioPage.xaml.cs">
-	    <DependentUpon>InicioPage.xaml</DependentUpon>
-	  </Compile>
-	  <Compile Update="RegisterPage.xaml.cs">
-	    <DependentUpon>RegisterPage.xaml</DependentUpon>
-	  </Compile>
-	  <Compile Update="VerificationPage.xaml.cs">
-	    <DependentUpon>VerificationPage.xaml</DependentUpon>
-	  </Compile>
+		<Compile Update="InicioPage.xaml.cs">
+			<DependentUpon>InicioPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="RegisterPage.xaml.cs">
+			<DependentUpon>RegisterPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="VerificationPage.xaml.cs">
+			<DependentUpon>VerificationPage.xaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="LoginPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="InicioPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="PerfilPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="PublicarServicioPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="RegisterPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="VerificationPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
+		<MauiXaml Update="LoginPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="InicioPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="PerfilPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="PublicarServicioPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="RegisterPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="VerificationPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 	</ItemGroup>
 
 </Project>
