@@ -215,7 +215,7 @@ public partial class InicioPage : ContentPage
         }
     }
 
-    // NUEVO: Método para navegar al perfil al presionar el nombre
+    // Método para navegar al perfil al presionar el nombre
     private async void OnNombreUsuarioClicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new PerfilPage());
@@ -267,14 +267,37 @@ public partial class InicioPage : ContentPage
         // Aquí navegarías a la página de servicios o cambiarías el contenido
     }
 
+    // ACTUALIZADO: Método para navegar a PublicarServicioPage
     private async void OnPublicarClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("Publicar", "Navegando a publicar servicio...", "OK");
-        // await Navigation.PushAsync(new PublicarServicioPage());
-        // CambiarPestana("Publicar");
+        try
+        {
+            // Verificar sesión antes de navegar
+            if (!SessionManager.EstaLogueado())
+            {
+                await DisplayAlert("Sesión requerida", "Debes iniciar sesión para publicar un servicio", "OK");
+                return;
+            }
+
+            //if (SessionManager.SesionExpirada())
+            //{
+            //    await DisplayAlert("Sesión expirada", "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
+            //    SessionManager.CerrarSesion();
+            //    Application.Current.MainPage = new AppShell();
+            //    return;
+            //}
+
+            // Navegar a la página de publicar servicio
+            await Navigation.PushAsync(new PublicarServicioPage());
+            CambiarPestana("Publicar");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Error al navegar: {ex.Message}", "OK");
+        }
     }
 
-    // ACTUALIZADO: Método para navegar al perfil
+    // Método para navegar al perfil
     private async void OnPerfilClicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new PerfilPage());

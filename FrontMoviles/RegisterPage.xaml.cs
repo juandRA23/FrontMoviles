@@ -1,5 +1,5 @@
+Ôªøusing FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
-using FrontMoviles.Servicios;
 using System.Text.RegularExpressions;
 
 namespace FrontMoviles;
@@ -7,156 +7,155 @@ namespace FrontMoviles;
 public partial class RegisterPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private bool _isPasswordVisible = false;
-    private List<Provincia> _provincias;
-    private List<Canton> _cantones;
-    private List<Canton> _cantonesFiltrados;
-
-    // Propiedades para el binding de fechas
-    public DateTime MaxDate => DateTime.Now.AddYears(-18);
-    public DateTime MinDate => DateTime.Now.AddYears(-100);
+    private List<Provincia> _provincias = new List<Provincia>();
+    private List<Canton> _cantones = new List<Canton>();
+    private List<Canton> _cantonesFiltrados = new List<Canton>();
 
     public RegisterPage()
     {
         InitializeComponent();
         _apiService = new ApiService();
-        _provincias = new List<Provincia>();
-        _cantones = new List<Canton>();
-        _cantonesFiltrados = new List<Canton>();
-
-        // Establecer el BindingContext para las fechas
-        BindingContext = this;
-
-        // Configurar fechas
         ConfigurarFechas();
-
-        // Cargar datos de ubicaciÛn
-        CargarDatosUbicacion();
+        CargarUbicaciones();
     }
 
-    #region ConfiguraciÛn Inicial
+    #region Configuraci√≥n Inicial
 
     private void ConfigurarFechas()
     {
-        // Configurar fecha de nacimiento
-        FechaNacimientoPicker.MaximumDate = DateTime.Now.AddYears(-18); // MÌnimo 18 aÒos
-        FechaNacimientoPicker.MinimumDate = DateTime.Now.AddYears(-100); // M·ximo 100 aÒos
-        FechaNacimientoPicker.Date = DateTime.Now.AddYears(-25); // Fecha por defecto
+        // Configurar fechas para el DatePicker
+        var hoy = DateTime.Now;
+        FechaNacimientoPicker.MaximumDate = hoy.AddYears(-13); // M√≠nimo 13 a√±os
+        FechaNacimientoPicker.MinimumDate = hoy.AddYears(-120); // M√°ximo 120 a√±os
+        FechaNacimientoPicker.Date = hoy.AddYears(-25); // Valor por defecto: 25 a√±os
     }
 
-    private async void CargarDatosUbicacion()
+    private async void CargarUbicaciones()
     {
         try
         {
-            // Cargar provincias y cantones en paralelo
-            var provinciasTask = _apiService.ObtenerProvinciasAsync();
-            var cantonesTask = _apiService.ObtenerCantonesAsync();
+            // Mostrar indicador de carga (opcional)
+            ProvinciaPicker.Title = "Cargando provincias...";
+            ProvinciaPicker.IsEnabled = false;
 
-            await Task.WhenAll(provinciasTask, cantonesTask);
+            // Cargar provincias desde la API
+            var responseProvincias = await _apiService.ObtenerProvinciasAsync();
 
-            var provinciasResponse = await provinciasTask;
-            var cantonesResponse = await cantonesTask;
-
-            // Verificar respuestas
-            if (provinciasResponse.Resultado)
+            if (responseProvincias.Resultado && responseProvincias.Provincias?.Any() == true)
             {
-                _provincias = provinciasResponse.Provincias ?? new List<Provincia>();
-                CargarProvinciasEnPicker();
+                _provincias = responseProvincias.Provincias;
+                CargarProvinciasPicker();
             }
             else
             {
-                // Si falla, usar datos mock
-                _provincias = GetMockProvincias();
-                CargarProvinciasEnPicker();
+                var errorMsg = responseProvincias.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                await DisplayAlert("Error", $"No se pudieron cargar las provincias: {errorMsg}", "OK");
+                // Cargar datos de respaldo
+                CargarProvinciasRespaldo();
             }
 
-            if (cantonesResponse.Resultado)
+            // Cargar cantones desde la API
+            var responseCantones = await _apiService.ObtenerCantonesAsync();
+
+            if (responseCantones.Resultado && responseCantones.Cantones?.Any() == true)
             {
-                _cantones = cantonesResponse.Cantones ?? new List<Canton>();
+                _cantones = responseCantones.Cantones;
             }
             else
             {
-                // Si falla, usar datos mock
-                _cantones = GetMockCantones();
+                var errorMsg = responseCantones.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                await DisplayAlert("Error", $"No se pudieron cargar los cantones: {errorMsg}", "OK");
+                // Cargar datos de respaldo
+                CargarCantonesRespaldo();
             }
         }
         catch (Exception ex)
         {
-            // En caso de error, usar datos mock
-            _provincias = GetMockProvincias();
-            _cantones = GetMockCantones();
-            CargarProvinciasEnPicker();
-
-            await DisplayAlert("Advertencia", "Error al cargar ubicaciones. Usando datos locales.", "OK");
+            await DisplayAlert("Error", $"Error al cargar ubicaciones: {ex.Message}", "OK");
+            // Cargar datos de respaldo en caso de error
+            CargarProvinciasRespaldo();
+            CargarCantonesRespaldo();
         }
     }
 
-    private void CargarProvinciasEnPicker()
+    private void CargarProvinciasPicker()
     {
-        ProvinciaPicker.ItemsSource = null;
-        if (_provincias.Any())
+        try
         {
-            var provinciasNombres = _provincias.Select(p => p.Nombre).ToList();
-            ProvinciaPicker.ItemsSource = provinciasNombres;
+            ProvinciaPicker.ItemsSource = null; // Limpiar primero
+            ProvinciaPicker.ItemsSource = _provincias.Select(p => p.Nombre).ToList();
+            ProvinciaPicker.Title = "Seleccionar provincia";
+            ProvinciaPicker.IsEnabled = true;
+        }
+        catch (Exception ex)
+        {
+            DisplayAlert("Error", $"Error al cargar provincias en picker: {ex.Message}", "OK");
         }
     }
 
-    private List<Provincia> GetMockProvincias()
+    private void CargarProvinciasRespaldo()
     {
-        var provincias = new List<Provincia>();
-        provincias.Add(new Provincia { ProvinciaId = 1, Nombre = "San JosÈ" });
-        provincias.Add(new Provincia { ProvinciaId = 2, Nombre = "Alajuela" });
-        provincias.Add(new Provincia { ProvinciaId = 3, Nombre = "Cartago" });
-        provincias.Add(new Provincia { ProvinciaId = 4, Nombre = "Heredia" });
-        provincias.Add(new Provincia { ProvinciaId = 5, Nombre = "Guanacaste" });
-        provincias.Add(new Provincia { ProvinciaId = 6, Nombre = "Puntarenas" });
-        provincias.Add(new Provincia { ProvinciaId = 7, Nombre = "LimÛn" });
-        return provincias;
+        // Datos de respaldo en caso de error con la API
+        _provincias = new List<Provincia>
+        {
+            new Provincia { ProvinciaId = 1, Nombre = "San Jos√©" },
+            new Provincia { ProvinciaId = 2, Nombre = "Alajuela" },
+            new Provincia { ProvinciaId = 3, Nombre = "Cartago" },
+            new Provincia { ProvinciaId = 4, Nombre = "Heredia" },
+            new Provincia { ProvinciaId = 5, Nombre = "Guanacaste" },
+            new Provincia { ProvinciaId = 6, Nombre = "Puntarenas" },
+            new Provincia { ProvinciaId = 7, Nombre = "Lim√≥n" }
+        };
+
+        CargarProvinciasPicker();
     }
 
-    private List<Canton> GetMockCantones()
+    private void CargarCantonesRespaldo()
     {
-        var cantones = new List<Canton>();
-        var sanJose = new Provincia { ProvinciaId = 1, Nombre = "San JosÈ" };
-
-        cantones.Add(new Canton { CantonId = 1, Nombre = "San JosÈ", Provincia = sanJose });
-        cantones.Add(new Canton { CantonId = 2, Nombre = "Escaz˙", Provincia = sanJose });
-        cantones.Add(new Canton { CantonId = 3, Nombre = "Desamparados", Provincia = sanJose });
-        cantones.Add(new Canton { CantonId = 4, Nombre = "Puriscal", Provincia = sanJose });
-        cantones.Add(new Canton { CantonId = 5, Nombre = "Tarraz˙", Provincia = sanJose });
-
-        return cantones;
+        // Datos de respaldo b√°sicos - en una implementaci√≥n real, tendr√≠as m√°s cantones
+        _cantones = new List<Canton>
+        {
+            // San Jos√©
+            new Canton { CantonId = 1, Nombre = "San Jos√©", Provincia = new Provincia { ProvinciaId = 1, Nombre = "San Jos√©" } },
+            new Canton { CantonId = 2, Nombre = "Escaz√∫", Provincia = new Provincia { ProvinciaId = 1, Nombre = "San Jos√©" } },
+            new Canton { CantonId = 3, Nombre = "Desamparados", Provincia = new Provincia { ProvinciaId = 1, Nombre = "San Jos√©" } },
+            
+            // Alajuela
+            new Canton { CantonId = 4, Nombre = "Alajuela", Provincia = new Provincia { ProvinciaId = 2, Nombre = "Alajuela" } },
+            new Canton { CantonId = 5, Nombre = "San Ram√≥n", Provincia = new Provincia { ProvinciaId = 2, Nombre = "Alajuela" } },
+            
+            // Agregar m√°s cantones seg√∫n necesidad...
+        };
     }
 
     #endregion
 
-    #region Eventos de SelecciÛn
+    #region Eventos de Ubicaci√≥n
 
     private void OnProvinciaSelectionChanged(object sender, EventArgs e)
     {
-        var picker = sender as Picker;
-        if (picker?.SelectedIndex >= 0 && picker.SelectedIndex < _provincias.Count)
-        {
-            var provinciaSeleccionada = _provincias[picker.SelectedIndex];
-            CargarCantonesPorProvincia(provinciaSeleccionada.ProvinciaId);
-        }
-    }
-
-    private void CargarCantonesPorProvincia(int provinciaId)
-    {
         try
         {
-            // Filtrar cantones por provincia seleccionada
-            _cantonesFiltrados = _apiService.FiltrarCantonesPorProvincia(_cantones, provinciaId);
-
-            CantonPicker.ItemsSource = null;
-            CantonPicker.IsEnabled = false;
-
-            if (_cantonesFiltrados.Any())
+            if (ProvinciaPicker.SelectedIndex >= 0 && ProvinciaPicker.SelectedIndex < _provincias.Count)
             {
-                var cantonesNombres = _cantonesFiltrados.Select(c => c.Nombre).ToList();
-                CantonPicker.ItemsSource = cantonesNombres;
-                CantonPicker.IsEnabled = true;
+                var provinciaSeleccionada = _provincias[ProvinciaPicker.SelectedIndex];
+
+                // Filtrar cantones por provincia seleccionada
+                _cantonesFiltrados = _apiService.FiltrarCantonesPorProvincia(_cantones, provinciaSeleccionada.ProvinciaId);
+
+                // Cargar cantones en el picker
+                CantonPicker.ItemsSource = null;
+                CantonPicker.ItemsSource = _cantonesFiltrados.Select(c => c.Nombre).ToList();
+                CantonPicker.SelectedIndex = -1; // Resetear selecci√≥n
+                CantonPicker.IsEnabled = _cantonesFiltrados.Any();
+                CantonPicker.Title = _cantonesFiltrados.Any() ? "Seleccionar cant√≥n" : "No hay cantones disponibles";
+            }
+            else
+            {
+                // Resetear cantones si no hay provincia seleccionada
+                CantonPicker.ItemsSource = null;
+                CantonPicker.IsEnabled = false;
+                CantonPicker.Title = "Seleccionar cant√≥n";
             }
         }
         catch (Exception ex)
@@ -167,192 +166,253 @@ public partial class RegisterPage : ContentPage
 
     #endregion
 
-    #region Validaciones
+    #region Eventos de Validaci√≥n
 
-    private bool ValidarFormulario()
+    private void OnPasswordTextChanged(object sender, TextChangedEventArgs e)
     {
-        bool esValido = true;
-        var errores = new List<string>();
-
-        // Validar nombre (obligatorio)
-        if (string.IsNullOrWhiteSpace(NombreEntry.Text))
-        {
-            errores.Add("El nombre es obligatorio");
-            esValido = false;
-        }
-
-        // Validar primer apellido (obligatorio)
-        if (string.IsNullOrWhiteSpace(Apellido1Entry.Text))
-        {
-            errores.Add("El primer apellido es obligatorio");
-            esValido = false;
-        }
-
-        // Validar telÈfono (obligatorio)
-        if (string.IsNullOrWhiteSpace(TelefonoEntry.Text))
-        {
-            errores.Add("El telÈfono es obligatorio");
-            esValido = false;
-        }
-
-        // Validar ubicaciÛn
-        if (ProvinciaPicker.SelectedIndex < 0)
-        {
-            errores.Add("Debes seleccionar una provincia");
-            esValido = false;
-        }
-
-        if (CantonPicker.SelectedIndex < 0)
-        {
-            errores.Add("Debes seleccionar un cantÛn");
-            esValido = false;
-        }
-
-        // Validar email (obligatorio y formato)
-        if (string.IsNullOrWhiteSpace(CorreoEntry.Text))
-        {
-            errores.Add("El correo electrÛnico es obligatorio");
-            CorreoErrorLabel.IsVisible = true;
-            esValido = false;
-        }
-        else if (!ValidarEmail(CorreoEntry.Text))
-        {
-            errores.Add("El formato del correo electrÛnico no es v·lido");
-            CorreoErrorLabel.IsVisible = true;
-            esValido = false;
-        }
-        else
-        {
-            CorreoErrorLabel.IsVisible = false;
-        }
-
-        // Validar contraseÒa (obligatorio y fortaleza)
-        if (string.IsNullOrWhiteSpace(ContrasenaEntry.Text))
-        {
-            errores.Add("La contraseÒa es obligatoria");
-            esValido = false;
-        }
-        else if (ContrasenaEntry.Text.Length < 8)
-        {
-            errores.Add("La contraseÒa debe tener al menos 8 caracteres");
-            esValido = false;
-        }
-
-        // Validar confirmaciÛn de contraseÒa
-        if (ContrasenaEntry.Text != ConfirmarContrasenaEntry.Text)
-        {
-            errores.Add("Las contraseÒas no coinciden");
-            ConfirmarErrorLabel.IsVisible = true;
-            esValido = false;
-        }
-        else
-        {
-            ConfirmarErrorLabel.IsVisible = false;
-        }
-
-        // Validar tÈrminos y condiciones
-        if (!TerminosCheck.IsChecked)
-        {
-            errores.Add("Debes aceptar los tÈrminos y condiciones");
-            esValido = false;
-        }
-
-        // Mostrar errores si los hay
-        if (!esValido)
-        {
-            DisplayAlert("Datos incompletos", string.Join("\n", errores), "OK");
-        }
-
-        return esValido;
-    }
-
-    private bool ValidarEmail(string email)
-    {
-        var emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-        return Regex.IsMatch(email, emailPattern);
+        ValidarFortalezaContrasena(e.NewTextValue);
     }
 
     private void ValidarFortalezaContrasena(string password)
     {
-        int fortaleza = 0;
-
-        if (password.Length >= 8) fortaleza++;
-        if (Regex.IsMatch(password, @"[A-Z]")) fortaleza++;
-        if (Regex.IsMatch(password, @"[0-9]")) fortaleza++;
-        if (Regex.IsMatch(password, @"[^a-zA-Z0-9]")) fortaleza++;
-
-        var colores = new Color[]
+        if (string.IsNullOrEmpty(password))
         {
-            Color.FromArgb("#E0E0E0"),
-            Color.FromArgb("#FF4444"),
-            Color.FromArgb("#FFA500"),
-            Color.FromArgb("#4CAF50")
+            ResetearBarrasFortaleza();
+            PasswordStrengthLabel.Text = "La contrase√±a debe tener al menos 8 caracteres";
+            PasswordStrengthLabel.TextColor = Colors.Gray;
+            return;
+        }
+
+        int puntuacion = 0;
+        var criterios = new List<string>();
+
+        // Longitud m√≠nima
+        if (password.Length >= 8)
+        {
+            puntuacion++;
+        }
+        else
+        {
+            criterios.Add("al menos 8 caracteres");
+        }
+
+        // Contiene may√∫sculas
+        if (password.Any(char.IsUpper))
+        {
+            puntuacion++;
+        }
+        else
+        {
+            criterios.Add("una may√∫scula");
+        }
+
+        // Contiene min√∫sculas
+        if (password.Any(char.IsLower))
+        {
+            puntuacion++;
+        }
+        else
+        {
+            criterios.Add("una min√∫scula");
+        }
+
+        // Contiene n√∫meros
+        if (password.Any(char.IsDigit))
+        {
+            puntuacion++;
+        }
+        else
+        {
+            criterios.Add("un n√∫mero");
+        }
+
+        ActualizarBarrasFortaleza(puntuacion);
+        ActualizarMensajeFortaleza(puntuacion, criterios);
+    }
+
+    private void ResetearBarrasFortaleza()
+    {
+        StrengthBar1.Color = Color.FromArgb("#E0E0E0");
+        StrengthBar2.Color = Color.FromArgb("#E0E0E0");
+        StrengthBar3.Color = Color.FromArgb("#E0E0E0");
+        StrengthBar4.Color = Color.FromArgb("#E0E0E0");
+    }
+
+    private void ActualizarBarrasFortaleza(int puntuacion)
+    {
+        ResetearBarrasFortaleza();
+
+        var colores = new[]
+        {
+            "#FF4444", // Rojo - Muy d√©bil
+            "#FF8800", // Naranja - D√©bil
+            "#FFBB00", // Amarillo - Moderada
+            "#00AA00"  // Verde - Fuerte
         };
 
-        // Calcular el Ìndice de color de manera segura
-        var colorIndex = fortaleza == 0 ? 0 : Math.Min(fortaleza, 3);
-
-        // Actualizar barras de fortaleza
-        StrengthBar1.Color = fortaleza >= 1 ? colores[Math.Min(fortaleza, 3)] : colores[0];
-        StrengthBar2.Color = fortaleza >= 2 ? colores[Math.Min(fortaleza, 3)] : colores[0];
-        StrengthBar3.Color = fortaleza >= 3 ? colores[Math.Min(fortaleza, 3)] : colores[0];
-        StrengthBar4.Color = fortaleza >= 4 ? colores[3] : colores[0];
-
-        // Actualizar texto
-        var mensajes = new string[]
+        for (int i = 0; i < puntuacion && i < 4; i++)
         {
-            "La contraseÒa debe tener al menos 8 caracteres",
-            "ContraseÒa dÈbil",
-            "ContraseÒa regular",
-            "ContraseÒa buena",
-            "ContraseÒa fuerte"
-        };
+            var color = Color.FromArgb(colores[Math.Min(puntuacion - 1, 3)]);
 
-        PasswordStrengthLabel.Text = mensajes[fortaleza];
-        PasswordStrengthLabel.TextColor = colores[colorIndex == 0 ? 1 : colorIndex];
+            switch (i)
+            {
+                case 0: StrengthBar1.Color = color; break;
+                case 1: StrengthBar2.Color = color; break;
+                case 2: StrengthBar3.Color = color; break;
+                case 3: StrengthBar4.Color = color; break;
+            }
+        }
+    }
+
+    private void ActualizarMensajeFortaleza(int puntuacion, List<string> criterios)
+    {
+        switch (puntuacion)
+        {
+            case 0:
+            case 1:
+                PasswordStrengthLabel.Text = "Contrase√±a muy d√©bil";
+                PasswordStrengthLabel.TextColor = Color.FromArgb("#FF4444");
+                break;
+            case 2:
+                PasswordStrengthLabel.Text = "Contrase√±a d√©bil";
+                PasswordStrengthLabel.TextColor = Color.FromArgb("#FF8800");
+                break;
+            case 3:
+                PasswordStrengthLabel.Text = "Contrase√±a moderada";
+                PasswordStrengthLabel.TextColor = Color.FromArgb("#FFBB00");
+                break;
+            case 4:
+                PasswordStrengthLabel.Text = "Contrase√±a fuerte";
+                PasswordStrengthLabel.TextColor = Color.FromArgb("#00AA00");
+                break;
+        }
+
+        if (criterios.Any())
+        {
+            PasswordStrengthLabel.Text += $" - Falta: {string.Join(", ", criterios)}";
+        }
     }
 
     #endregion
 
     #region Eventos de UI
 
-    private void OnPasswordTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (!string.IsNullOrEmpty(e.NewTextValue))
-        {
-            ValidarFortalezaContrasena(e.NewTextValue);
-        }
-    }
-
     private void OnShowPasswordTapped(object sender, EventArgs e)
     {
-        _isPasswordVisible = !_isPasswordVisible;
-        ContrasenaEntry.IsPassword = !_isPasswordVisible;
-
-        if (sender is Label label)
-        {
-            label.Text = _isPasswordVisible ? "Ocultar" : "Mostrar";
-        }
+        ContrasenaEntry.IsPassword = !ContrasenaEntry.IsPassword;
+        var label = sender as Label;
+        label.Text = ContrasenaEntry.IsPassword ? "Mostrar" : "Ocultar";
     }
 
     private async void OnTermsClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("TÈrminos y Condiciones", "AquÌ irÌan los tÈrminos y condiciones completos.", "OK");
+        await DisplayAlert("T√©rminos y Condiciones", "Aqu√≠ ir√≠an los t√©rminos y condiciones completos.", "OK");
     }
 
     private async void OnPrivacyClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("PolÌtica de Privacidad", "AquÌ irÌa la polÌtica de privacidad completa.", "OK");
+        await DisplayAlert("Pol√≠tica de Privacidad", "Aqu√≠ ir√≠a la pol√≠tica de privacidad completa.", "OK");
     }
 
     private async void OnLoginTapped(object sender, EventArgs e)
     {
-        await Navigation.PopAsync(); // Regresar a login
+        await Navigation.PopAsync();
     }
 
     #endregion
 
-    #region Registro de Usuario
+    #region Validaciones
+
+    private bool ValidarFormulario()
+    {
+        var errores = new List<string>();
+
+        // Validar campos obligatorios
+        if (string.IsNullOrWhiteSpace(NombreEntry.Text))
+            errores.Add("El nombre es obligatorio");
+
+        if (string.IsNullOrWhiteSpace(Apellido1Entry.Text))
+            errores.Add("El primer apellido es obligatorio");
+
+        if (string.IsNullOrWhiteSpace(TelefonoEntry.Text))
+            errores.Add("El tel√©fono es obligatorio");
+
+        if (ProvinciaPicker.SelectedIndex < 0)
+            errores.Add("Debe seleccionar una provincia");
+
+        if (CantonPicker.SelectedIndex < 0)
+            errores.Add("Debe seleccionar un cant√≥n");
+
+        // Validar email
+        if (!ValidarEmail(CorreoEntry.Text))
+        {
+            errores.Add("El correo electr√≥nico no es v√°lido");
+            CorreoErrorLabel.IsVisible = true;
+        }
+        else
+        {
+            CorreoErrorLabel.IsVisible = false;
+        }
+
+        // Validar contrase√±a
+        if (string.IsNullOrWhiteSpace(ContrasenaEntry.Text) || ContrasenaEntry.Text.Length < 8)
+            errores.Add("La contrase√±a debe tener al menos 8 caracteres");
+
+        // Validar confirmaci√≥n de contrase√±a
+        if (ContrasenaEntry.Text != ConfirmarContrasenaEntry.Text)
+        {
+            errores.Add("Las contrase√±as no coinciden");
+            ConfirmarErrorLabel.IsVisible = true;
+        }
+        else
+        {
+            ConfirmarErrorLabel.IsVisible = false;
+        }
+
+        // Validar t√©rminos y condiciones
+        if (!TerminosCheck.IsChecked)
+            errores.Add("Debe aceptar los t√©rminos y condiciones");
+
+        if (errores.Any())
+        {
+            DisplayAlert("Errores de validaci√≥n", string.Join("\n", errores), "OK");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidarEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        try
+        {
+            var emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+            return Regex.IsMatch(email, emailPattern);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool ValidarTelefono(string telefono)
+    {
+        if (string.IsNullOrWhiteSpace(telefono))
+            return false;
+
+        // Remover espacios y caracteres especiales
+        var numeroLimpio = telefono.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "").Replace("+", "");
+
+        // Validar que tenga 8 d√≠gitos (Costa Rica) o 11 con c√≥digo de pa√≠s
+        return numeroLimpio.Length == 8 || (numeroLimpio.StartsWith("506") && numeroLimpio.Length == 11);
+    }
+
+    #endregion
+
+    #region Registro
 
     private async void OnRegisterClicked(object sender, EventArgs e)
     {
@@ -362,72 +422,48 @@ public partial class RegisterPage : ContentPage
         try
         {
             // Mostrar indicador de carga
-            var button = sender as Button;
-            button.Text = "Registrando...";
-            button.IsEnabled = false;
+            ((Button)sender).Text = "Registrando...";
+            ((Button)sender).IsEnabled = false;
 
-            // Obtener ubicaciÛn seleccionada
-            Provincia provinciaSeleccionada = null;
-            Canton cantonSeleccionado = null;
+            // Obtener objetos seleccionados
+            var provinciaSeleccionada = _provincias[ProvinciaPicker.SelectedIndex];
+            var cantonSeleccionado = _cantonesFiltrados[CantonPicker.SelectedIndex];
 
-            if (ProvinciaPicker.SelectedIndex >= 0 && ProvinciaPicker.SelectedIndex < _provincias.Count)
-            {
-                provinciaSeleccionada = _provincias[ProvinciaPicker.SelectedIndex];
-            }
-
-            if (CantonPicker.SelectedIndex >= 0 && CantonPicker.SelectedIndex < _cantonesFiltrados.Count)
-            {
-                cantonSeleccionado = _cantonesFiltrados[CantonPicker.SelectedIndex];
-            }
-
-            // Crear el objeto de request
+            // Crear request
             var request = new ReqInsertarUsuario
             {
                 Usuario = new Usuario
                 {
-                    Nombre = NombreEntry.Text?.Trim(),
-                    Apellido1 = Apellido1Entry.Text?.Trim(),
+                    Nombre = NombreEntry.Text.Trim(),
+                    Apellido1 = Apellido1Entry.Text.Trim(),
                     Apellido2 = string.IsNullOrWhiteSpace(Apellido2Entry.Text) ? "" : Apellido2Entry.Text.Trim(),
                     FechaNacimiento = FechaNacimientoPicker.Date,
-                    Correo = CorreoEntry.Text?.Trim().ToLower(),
-                    Telefono = TelefonoEntry.Text?.Trim(),
+                    Telefono = TelefonoEntry.Text.Trim(),
+                    Direccion = string.IsNullOrWhiteSpace(DireccionEntry.Text) ? "" : DireccionEntry.Text.Trim(),
+                    Correo = CorreoEntry.Text.Trim().ToLower(),
                     Contrasena = ContrasenaEntry.Text,
-                    Direccion = DireccionEntry.Text?.Trim() ?? "",
-                    FotoPerfil = "",
-
-                    // UbicaciÛn seleccionada (sin distrito)
                     Provincia = provinciaSeleccionada,
                     Canton = cantonSeleccionado,
-
-
-                    // Valores por defecto
-                    UsuarioId = 0,
-                    Salt = "",
-                    Verificacion = 0,
                     Activo = true,
                     PerfilCompleto = false,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Verificacion = 0
                 }
             };
 
             // Llamar al API
             var response = await _apiService.RegistrarUsuarioAsync(request);
 
-            // Procesar respuesta
             if (response.Resultado)
             {
-                await DisplayAlert("…xito", "Usuario registrado exitosamente. Por favor verifica tu cuenta.", "OK");
+                await DisplayAlert("√âxito", "¬°Cuenta creada exitosamente! Se ha enviado un c√≥digo de verificaci√≥n a tu correo.", "OK");
 
-                // Navegar a la p·gina de verificaciÛn
-                await Navigation.PushAsync(new VerificationPage(CorreoEntry.Text?.Trim().ToLower()));
+                // Navegar a la p√°gina de verificaci√≥n
+                await Navigation.PushAsync(new VerificationPage(CorreoEntry.Text.Trim().ToLower()));
             }
             else
             {
-                // Mostrar errores del servidor
-                var mensajesError = response.Error?.Select(e => e.Message) ?? new[] { "Error desconocido" };
-                var mensaje = string.Join("\n", mensajesError);
-                await DisplayAlert("Error", mensaje, "OK");
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                await DisplayAlert("Error", $"No se pudo crear la cuenta: {errorMessage}", "OK");
             }
         }
         catch (Exception ex)
@@ -436,12 +472,9 @@ public partial class RegisterPage : ContentPage
         }
         finally
         {
-            // Restaurar botÛn
-            if (sender is Button button)
-            {
-                button.Text = "Crear cuenta";
-                button.IsEnabled = true;
-            }
+            // Restaurar bot√≥n
+            ((Button)sender).Text = "Crear cuenta";
+            ((Button)sender).IsEnabled = true;
         }
     }
 

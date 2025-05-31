@@ -140,24 +140,24 @@ namespace FrontMoviles.Servicios
                     return CreateObtenerUsuarioErrorResponse(-10, "No hay sesión activa. Por favor, inicia sesión.");
                 }
 
-                if (!SessionManager.EstaLogueado())
-                {
-                    return CreateObtenerUsuarioErrorResponse(-11, "La sesión ha expirado. Por favor, inicia sesión nuevamente.");
-                }
-
                 // Configurar autenticación
                 ConfigurarAutenticacion();
 
                 // Obtener información de sesión
-                
+                var userEmail = SessionManager.ObtenerEmailUsuario();
+
+                if (string.IsNullOrEmpty(userEmail))
+                {
+                    return CreateObtenerUsuarioErrorResponse(-11, "No se encontró información de usuario en la sesión.");
+                }
 
                 // Crear el request con la información de sesión
                 var request = new ReqObtenerUsuario
                 {
                     Usuario = new UsuarioObtener
                     {
-                        UsuarioId = SessionManager.ObtenerSessionId(),
-                        Correo = sessionInfo.UserEmail
+                        UsuarioId = 0, // Usar 0 cuando se busca por email
+                        Correo = userEmail
                     }
                 };
 
@@ -171,8 +171,9 @@ namespace FrontMoviles.Servicios
 
                 // Log para debugging
                 System.Diagnostics.Debug.WriteLine($"Request JSON: {json}");
-                System.Diagnostics.Debug.WriteLine($"Token: {sessionInfo.Token}");
-                System.Diagnostics.Debug.WriteLine($"SessionId: {sessionInfo.SessionId}");
+                System.Diagnostics.Debug.WriteLine($"Token: {SessionManager.ObtenerToken()}");
+                System.Diagnostics.Debug.WriteLine($"SessionId: {SessionManager.ObtenerSessionId()}");
+                System.Diagnostics.Debug.WriteLine($"UserEmail: {userEmail}");
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
