@@ -1,5 +1,6 @@
 ﻿using FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
+using System.Net.Http;
 
 namespace FrontMoviles;
 
@@ -76,7 +77,6 @@ public partial class PublicarServicioPage : ContentPage
                 var errorMsg = responseSubCategorias.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
                 System.Diagnostics.Debug.WriteLine($"⚠️ Advertencia subcategorías: {errorMsg}");
                 await DisplayAlert("Advertencia", $"No se pudieron cargar subcategorías: {errorMsg}", "OK");
-                // Continuar sin subcategorías
             }
 
             // Mostrar contenido
@@ -177,7 +177,6 @@ public partial class PublicarServicioPage : ContentPage
             else
             {
                 System.Diagnostics.Debug.WriteLine("📂 Categoría deseleccionada");
-                // Resetear subcategorías
                 LimpiarSubCategorias();
             }
         }
@@ -252,7 +251,6 @@ public partial class PublicarServicioPage : ContentPage
         {
             if (isChecked)
             {
-                // Agregar a seleccionadas
                 if (!_subCategoriasSeleccionadas.Any(s => s.SubCategoriaId == subCategoria.SubCategoriaId))
                 {
                     _subCategoriasSeleccionadas.Add(new SubCategoriaSeleccionada
@@ -267,7 +265,6 @@ public partial class PublicarServicioPage : ContentPage
             }
             else
             {
-                // Remover de seleccionadas
                 _subCategoriasSeleccionadas.RemoveAll(s => s.SubCategoriaId == subCategoria.SubCategoriaId);
                 System.Diagnostics.Debug.WriteLine($"➖ SubCategoría removida: {subCategoria.Nombre}");
             }
@@ -304,7 +301,6 @@ public partial class PublicarServicioPage : ContentPage
     {
         var errores = new List<string>();
 
-        // Validar campos obligatorios
         if (string.IsNullOrWhiteSpace(TituloEntry.Text))
             errores.Add("El título es obligatorio");
 
@@ -322,7 +318,6 @@ public partial class PublicarServicioPage : ContentPage
         if (CategoriaPicker.SelectedIndex < 0)
             errores.Add("Debe seleccionar una categoría");
 
-        // Log de validación
         if (errores.Any())
         {
             System.Diagnostics.Debug.WriteLine($"❌ Errores de validación: {string.Join(", ", errores)}");
@@ -336,86 +331,41 @@ public partial class PublicarServicioPage : ContentPage
 
     #endregion
 
-    #region Publicar Servicio
+    #region Publicar Servicio - SIN VERIFICACIÓN DE EXPIRACIÓN
 
     private async void OnPublicarClicked(object sender, EventArgs e)
     {
-        // ========== LOGS DE DIAGNÓSTICO ==========
-        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 INICIANDO PUBLICAR SERVICIO 🔥🔥🔥");
-
-        // 1. Verificar información de sesión
-        var sessionId = SessionManager.ObtenerSessionId();
-        var token = SessionManager.ObtenerToken();
-        var userEmail = SessionManager.ObtenerEmailUsuario();
-        var isLoggedIn = SessionManager.EstaLogueado();
-        var tokenExpired = SessionManager.TokenExpirado();
-
-        System.Diagnostics.Debug.WriteLine($"📱 SessionId: {sessionId}");
-        System.Diagnostics.Debug.WriteLine($"📧 Email: {userEmail}");
-        System.Diagnostics.Debug.WriteLine($"✅ Logueado: {isLoggedIn}");
-        System.Diagnostics.Debug.WriteLine($"⏰ Token expirado: {tokenExpired}");
-        System.Diagnostics.Debug.WriteLine($"🔑 Token existe: {!string.IsNullOrEmpty(token)}");
-        if (!string.IsNullOrEmpty(token))
-        {
-            System.Diagnostics.Debug.WriteLine($"🔑 Token (primeros 50 chars): {token.Substring(0, Math.Min(50, token.Length))}...");
-        }
-
-        // 2. Verificar si es GUID válido
-        if (Guid.TryParse(sessionId, out Guid parsedGuid))
-        {
-            System.Diagnostics.Debug.WriteLine($"✅ SessionId es GUID válido: {parsedGuid}");
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ SessionId NO es GUID válido: {sessionId}");
-        }
-
-        // 3. Mostrar info también en pantalla para confirmar
-        await DisplayAlert("Debug Info",
-            $"SessionId: {(!string.IsNullOrEmpty(sessionId) ? "✅" : "❌")}\n" +
-            $"Token: {(!string.IsNullOrEmpty(token) ? "✅" : "❌")}\n" +
-            $"Logueado: {(isLoggedIn ? "✅" : "❌")}\n" +
-            $"Token expirado: {(tokenExpired ? "❌" : "✅")}", "Continuar");
-
-        System.Diagnostics.Debug.WriteLine("========================================");
-
-        // Si algo falla, detener aquí para ver el problema
-        if (!isLoggedIn || string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(token))
-        {
-            System.Diagnostics.Debug.WriteLine("❌ PROBLEMA DETECTADO: Falta sesión, token o sessionId");
-            await DisplayAlert("Error de Sesión",
-                "Problema detectado:\n" +
-                $"- Logueado: {isLoggedIn}\n" +
-                $"- SessionId: {!string.IsNullOrEmpty(sessionId)}\n" +
-                $"- Token: {!string.IsNullOrEmpty(token)}", "OK");
-            return;
-        }
+        System.Diagnostics.Debug.WriteLine("🔥 === PUBLICAR SERVICIO (SIN EXPIRACIÓN) ===");
 
         if (!ValidarFormulario())
             return;
 
         try
         {
-            // Verificar sesión nuevamente
+            // VERIFICACIÓN SIMPLE - Solo si está logueado
             if (!SessionManager.EstaLogueado())
             {
-                System.Diagnostics.Debug.WriteLine("❌ Sesión expirada durante validación");
-                await DisplayAlert("Sesión requerida", "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
-                await Navigation.PopAsync();
+                System.Diagnostics.Debug.WriteLine("❌ No hay sesión activa");
+                await MostrarErrorSesion();
                 return;
             }
 
+            // Imprimir información del token (solo para debugging)
+            SessionManager.ImprimirInformacionToken();
+
             // Mostrar indicador de carga
             var button = sender as Button;
-            var originalText = button.Text;
-            button.Text = "Publicando...";
-            button.IsEnabled = false;
+            var originalText = button?.Text;
+            if (button != null)
+            {
+                button.Text = "Publicando...";
+                button.IsEnabled = false;
+            }
 
             // Obtener categoría seleccionada
             var categoriaSeleccionada = _categorias[CategoriaPicker.SelectedIndex];
-            System.Diagnostics.Debug.WriteLine($"📂 Categoría seleccionada: {categoriaSeleccionada.Nombre} (ID: {categoriaSeleccionada.CategoriaId})");
 
-            // Convertir subcategorías seleccionadas al formato correcto
+            // Preparar subcategorías
             var subCategoriasParaEnviar = _subCategoriasSeleccionadas.Select(sc =>
             {
                 var subCategoriaOriginal = _subCategoriasFiltradas.FirstOrDefault(x => x.SubCategoriaId == sc.SubCategoriaId);
@@ -427,16 +377,14 @@ public partial class PublicarServicioPage : ContentPage
                 };
             }).ToList();
 
-            System.Diagnostics.Debug.WriteLine($"📋 SubCategorías para enviar: {subCategoriasParaEnviar.Count}");
-
-            // CREAR EL REQUEST SEGÚN LA DOCUMENTACIÓN DEL API
+            // Crear request
             var request = new ReqInsertarServicio
             {
-                SesionId = sessionId, // Usar el sessionId ya verificado
+                SesionId = SessionManager.ObtenerSessionId(),
                 Servicio = new Servicio
                 {
-                    ServicioId = 0, // Para nuevos servicios
-                    Usuario = null, // El servidor lo obtendrá de la sesión
+                    ServicioId = 0,
+                    Usuario = null,
                     Categoria = categoriaSeleccionada,
                     Titulo = TituloEntry.Text.Trim(),
                     Descripcion = DescripcionEditor.Text.Trim(),
@@ -448,55 +396,42 @@ public partial class PublicarServicioPage : ContentPage
                 }
             };
 
-            // Log del request completo
-            System.Diagnostics.Debug.WriteLine($"=== REQUEST PARA API ===");
-            System.Diagnostics.Debug.WriteLine($"SesionId: {request.SesionId}");
-            System.Diagnostics.Debug.WriteLine($"Título: {request.Servicio.Titulo}");
-            System.Diagnostics.Debug.WriteLine($"Descripción: {request.Servicio.Descripcion.Substring(0, Math.Min(50, request.Servicio.Descripcion.Length))}...");
-            System.Diagnostics.Debug.WriteLine($"Precio: {request.Servicio.Precio}");
-            System.Diagnostics.Debug.WriteLine($"Disponibilidad: {request.Servicio.Disponibilidad}");
-            System.Diagnostics.Debug.WriteLine($"Categoría ID: {request.Servicio.Categoria?.CategoriaId}");
-            System.Diagnostics.Debug.WriteLine($"Categoría Nombre: {request.Servicio.Categoria?.Nombre}");
-            System.Diagnostics.Debug.WriteLine($"SubCategorías Count: {request.Servicio.SubCategorias?.Count ?? 0}");
-            System.Diagnostics.Debug.WriteLine("=======================");
-
-            // Verificar que el ApiService tenga el JwtHttpHandler
             System.Diagnostics.Debug.WriteLine("🌐 Llamando al API...");
+            System.Diagnostics.Debug.WriteLine($"📱 SessionId: {request.SesionId}");
+            System.Diagnostics.Debug.WriteLine($"📧 Usuario: {SessionManager.ObtenerEmailUsuario()}");
+            System.Diagnostics.Debug.WriteLine($"📝 Título: {request.Servicio.Titulo}");
+            System.Diagnostics.Debug.WriteLine($"💰 Precio: {request.Servicio.Precio}");
 
-            // Llamar al API
+            // Llamar al API directamente (sin verificar expiración)
             var response = await _apiService.CrearServicioAsync(request);
-
-            System.Diagnostics.Debug.WriteLine($"📡 Respuesta recibida - Resultado: {response.Resultado}");
 
             if (response.Resultado)
             {
-                System.Diagnostics.Debug.WriteLine($"✅ ÉXITO - ServicioId: {response.ServicioId}, Mensaje: {response.Mensaje}");
-                await DisplayAlert("¡Éxito!",
-                    $"Servicio publicado exitosamente.\nID: {response.ServicioId}\n{response.Mensaje}",
-                    "OK");
-
-                // Limpiar formulario
+                System.Diagnostics.Debug.WriteLine("✅ ÉXITO - Servicio publicado");
+                await DisplayAlert("¡Éxito!", "Servicio publicado exitosamente", "OK");
                 LimpiarFormulario();
-
-                // Opcional: Navegar de vuelta
                 await Navigation.PopAsync();
             }
             else
             {
-                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido al publicar servicio";
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
                 System.Diagnostics.Debug.WriteLine($"❌ ERROR API: {errorMessage}");
 
-                // Log de todos los errores
-                if (response.Error?.Any() == true)
+                // Solo verificar errores de autenticación del servidor
+                if (EsErrorDeSesion(errorMessage))
                 {
-                    foreach (var error in response.Error)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ Error {error.ErrorCode}: {error.Message}");
-                    }
+                    System.Diagnostics.Debug.WriteLine("❌ El servidor rechazó la sesión");
+                    await MostrarErrorSesion();
+                    return;
                 }
 
                 await DisplayAlert("Error", $"No se pudo publicar el servicio:\n{errorMessage}", "OK");
             }
+        }
+        catch (HttpRequestException httpEx) when (httpEx.Message.Contains("401") || httpEx.Message.Contains("Unauthorized"))
+        {
+            System.Diagnostics.Debug.WriteLine($"💥 HTTP 401 del servidor: {httpEx.Message}");
+            await MostrarErrorSesion();
         }
         catch (Exception ex)
         {
@@ -515,6 +450,24 @@ public partial class PublicarServicioPage : ContentPage
 
             System.Diagnostics.Debug.WriteLine("🏁 FIN DE PUBLICAR SERVICIO");
         }
+    }
+
+    private static bool EsErrorDeSesion(string errorMessage)
+    {
+        var mensaje = errorMessage.ToLower();
+        return mensaje.Contains("sesion") ||
+               mensaje.Contains("token") ||
+               mensaje.Contains("unauthorized") ||
+               mensaje.Contains("authentication") ||
+               mensaje.Contains("forbidden");
+    }
+
+    private async Task MostrarErrorSesion()
+    {
+        SessionManager.CerrarSesion();
+        await DisplayAlert("Sesión Expirada",
+            "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
+        Application.Current.MainPage = new AppShell();
     }
 
     private async void OnGuardarBorradorClicked(object sender, EventArgs e)

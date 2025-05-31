@@ -14,8 +14,6 @@ namespace FrontMoviles.Servicios
         private const string USER_EMAIL_KEY = "UserEmail";
         private const string USER_ID_KEY = "UserId";
         private const string USER_NAME_KEY = "UserName";
-        private const string TOKEN_EXPIRY_KEY = "TokenExpiry";
-        private const string REFRESH_TOKEN_KEY = "RefreshToken";
         private const string SESSION_DATA_KEY = "SessionData";
 
         #region Métodos principales de sesión
@@ -37,21 +35,6 @@ namespace FrontMoviles.Servicios
                 System.Diagnostics.Debug.WriteLine($"📱 SessionId guardado: {sesion.SesionId}");
                 System.Diagnostics.Debug.WriteLine($"🔑 Token guardado: {(!string.IsNullOrEmpty(sesion.Token) ? "SÍ" : "NO")}");
                 System.Diagnostics.Debug.WriteLine($"📧 Email guardado: {userEmail}");
-
-                // Extraer y guardar información del JWT
-                if (!string.IsNullOrEmpty(sesion.Token))
-                {
-                    var tokenInfo = ExtraerInformacionJWT(sesion.Token);
-                    if (tokenInfo.Expiry.HasValue)
-                    {
-                        Preferences.Set(TOKEN_EXPIRY_KEY, tokenInfo.Expiry.Value.ToBinary());
-                        System.Diagnostics.Debug.WriteLine($"⏰ Expiración JWT guardada: {tokenInfo.Expiry.Value:yyyy-MM-dd HH:mm:ss} UTC");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("⚠️ No se pudo extraer fecha de expiración del JWT");
-                    }
-                }
 
                 // Guardar fechas de sesión
                 if (!string.IsNullOrEmpty(sesion.FechaCreacion))
@@ -89,8 +72,6 @@ namespace FrontMoviles.Servicios
                 Preferences.Remove(USER_EMAIL_KEY);
                 Preferences.Remove(USER_ID_KEY);
                 Preferences.Remove(USER_NAME_KEY);
-                Preferences.Remove(TOKEN_EXPIRY_KEY);
-                Preferences.Remove(REFRESH_TOKEN_KEY);
                 Preferences.Remove(SESSION_DATA_KEY);
                 Preferences.Remove("SessionCreatedAt");
 
@@ -114,15 +95,14 @@ namespace FrontMoviles.Servicios
                 var isLoggedIn = Preferences.Get(IS_LOGGED_IN_KEY, false);
                 var hasToken = !string.IsNullOrEmpty(ObtenerToken());
                 var hasSessionId = !string.IsNullOrEmpty(ObtenerSessionId());
-                var tokenExpirado = TokenExpirado();
 
                 System.Diagnostics.Debug.WriteLine($"🔍 Verificando si está logueado:");
                 System.Diagnostics.Debug.WriteLine($"  - IsLoggedIn flag: {isLoggedIn}");
                 System.Diagnostics.Debug.WriteLine($"  - Tiene token: {hasToken}");
                 System.Diagnostics.Debug.WriteLine($"  - Tiene SessionId: {hasSessionId}");
-                System.Diagnostics.Debug.WriteLine($"  - Token expirado: {tokenExpirado}");
 
-                var resultado = isLoggedIn && hasToken && hasSessionId && !tokenExpirado;
+                // ===== CAMBIO PRINCIPAL: SIN VERIFICACIÓN DE EXPIRACIÓN =====
+                var resultado = isLoggedIn && hasToken && hasSessionId;
                 System.Diagnostics.Debug.WriteLine($"  - RESULTADO: {resultado}");
 
                 return resultado;
@@ -134,94 +114,19 @@ namespace FrontMoviles.Servicios
             }
         }
 
+        // ===== MÉTODO SIMPLIFICADO: TokenExpirado() siempre retorna FALSE =====
         public static bool TokenExpirado()
         {
-            try
-            {
-                var token = ObtenerToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    System.Diagnostics.Debug.WriteLine("❌ No hay token para verificar");
-                    return true;
-                }
-
-                // DIAGNÓSTICO DETALLADO
-                System.Diagnostics.Debug.WriteLine("🔍 === DIAGNÓSTICO TOKEN EXPIRADO ===");
-
-                var ahora = DateTime.UtcNow;
-                var ahoraLocal = DateTime.Now;
-
-                System.Diagnostics.Debug.WriteLine($"🕐 Hora actual UTC: {ahora:yyyy-MM-dd HH:mm:ss}");
-                System.Diagnostics.Debug.WriteLine($"🕐 Hora actual Local: {ahoraLocal:yyyy-MM-dd HH:mm:ss}");
-                System.Diagnostics.Debug.WriteLine($"🌍 Zona horaria: {TimeZoneInfo.Local.DisplayName}");
-                System.Diagnostics.Debug.WriteLine($"🌍 Offset UTC: {TimeZoneInfo.Local.GetUtcOffset(DateTime.Now)}");
-
-                // Verificar expiración desde JWT
-                var tokenInfo = ExtraerInformacionJWT(token);
-                if (tokenInfo.Expiry.HasValue)
-                {
-                    var expiry = tokenInfo.Expiry.Value;
-                    var expiryLocal = expiry.ToLocalTime();
-
-                    System.Diagnostics.Debug.WriteLine($"⏰ Token expira UTC: {expiry:yyyy-MM-dd HH:mm:ss}");
-                    System.Diagnostics.Debug.WriteLine($"⏰ Token expira Local: {expiryLocal:yyyy-MM-dd HH:mm:ss}");
-
-                    var diferencia = expiry - ahora;
-                    var diferenciaMinutos = diferencia.TotalMinutes;
-
-                    System.Diagnostics.Debug.WriteLine($"📏 Diferencia de tiempo: {diferencia}");
-                    System.Diagnostics.Debug.WriteLine($"📏 Diferencia en minutos: {diferenciaMinutos:F2}");
-
-                    if (diferenciaMinutos > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"✅ Token válido por {diferenciaMinutos:F1} minutos más");
-                        System.Diagnostics.Debug.WriteLine("=== FIN DIAGNÓSTICO (Token VÁLIDO) ===");
-                        return false; // Token NO expirado
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ Token expiró hace {Math.Abs(diferenciaMinutos):F1} minutos");
-                        System.Diagnostics.Debug.WriteLine("=== FIN DIAGNÓSTICO (Token EXPIRADO) ===");
-                        return true; // Token expirado
-                    }
-                }
-
-                // Verificar desde preferences como respaldo
-                var expiryBinary = Preferences.Get(TOKEN_EXPIRY_KEY, 0L);
-                if (expiryBinary != 0)
-                {
-                    var expiry = DateTime.FromBinary(expiryBinary);
-                    System.Diagnostics.Debug.WriteLine($"⏰ Expiry desde Preferences: {expiry:yyyy-MM-dd HH:mm:ss}");
-
-                    var diferencia = expiry - ahora;
-                    System.Diagnostics.Debug.WriteLine($"📏 Diferencia Preferences: {diferencia}");
-
-                    var resultado = DateTime.UtcNow >= expiry;
-                    System.Diagnostics.Debug.WriteLine($"📊 Resultado desde Preferences: {(resultado ? "EXPIRADO" : "VÁLIDO")}");
-                    System.Diagnostics.Debug.WriteLine("=== FIN DIAGNÓSTICO (Preferences) ===");
-                    return resultado;
-                }
-
-                System.Diagnostics.Debug.WriteLine("❌ No se pudo determinar expiración - considerando expirado");
-                System.Diagnostics.Debug.WriteLine("=== FIN DIAGNÓSTICO (Sin info) ===");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"💥 Error verificando expiración: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"💥 StackTrace: {ex.StackTrace}");
-                return true; // En caso de error, considerar expirado
-            }
+            // Si el backend nunca expira tokens, este método siempre retorna false
+            System.Diagnostics.Debug.WriteLine("🔍 TokenExpirado() - Backend nunca expira tokens, retornando FALSE");
+            return false;
         }
 
         public static bool SesionExpirada()
         {
             var logueado = EstaLogueado();
-            var tokenExpirado = TokenExpirado();
-
-            System.Diagnostics.Debug.WriteLine($"🔍 SesionExpirada - Logueado: {logueado}, Token expirado: {tokenExpirado}");
-
-            return !logueado || tokenExpirado;
+            System.Diagnostics.Debug.WriteLine($"🔍 SesionExpirada - Logueado: {logueado}");
+            return !logueado;
         }
 
         #endregion
@@ -253,23 +158,6 @@ namespace FrontMoviles.Servicios
             return Preferences.Get(USER_ID_KEY, 0);
         }
 
-        public static DateTime? ObtenerFechaExpiracion()
-        {
-            try
-            {
-                var expiryBinary = Preferences.Get(TOKEN_EXPIRY_KEY, 0L);
-                if (expiryBinary != 0)
-                {
-                    return DateTime.FromBinary(expiryBinary);
-                }
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         public static Sesion ObtenerSesionCompleta()
         {
             try
@@ -298,18 +186,6 @@ namespace FrontMoviles.Servicios
             {
                 System.Diagnostics.Debug.WriteLine("🔄 Actualizando token...");
                 Preferences.Set(TOKEN_KEY, nuevoToken);
-
-                // Actualizar información de expiración
-                if (!string.IsNullOrEmpty(nuevoToken))
-                {
-                    var tokenInfo = ExtraerInformacionJWT(nuevoToken);
-                    if (tokenInfo.Expiry.HasValue)
-                    {
-                        Preferences.Set(TOKEN_EXPIRY_KEY, tokenInfo.Expiry.Value.ToBinary());
-                        System.Diagnostics.Debug.WriteLine($"⏰ Nueva expiración: {tokenInfo.Expiry.Value:yyyy-MM-dd HH:mm:ss} UTC");
-                    }
-                }
-
                 System.Diagnostics.Debug.WriteLine("✅ Token actualizado correctamente");
             }
             catch (Exception ex)
@@ -342,37 +218,7 @@ namespace FrontMoviles.Servicios
 
         #endregion
 
-        #region Métodos auxiliares para JWT
-
-        private static (DateTime? Expiry, string UserId, string Email) ExtraerInformacionJWT(string token)
-        {
-            try
-            {
-                var handler = new JwtSecurityTokenHandler();
-                var jsonToken = handler.ReadJwtToken(token);
-
-                // Extraer fecha de expiración
-                DateTime? expiry = null;
-                if (jsonToken.ValidTo != DateTime.MinValue)
-                {
-                    expiry = jsonToken.ValidTo;
-                    System.Diagnostics.Debug.WriteLine($"🔍 JWT ValidTo: {jsonToken.ValidTo:yyyy-MM-dd HH:mm:ss} (Kind: {jsonToken.ValidTo.Kind})");
-                }
-
-                // Extraer claims comunes
-                var userId = jsonToken.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "userId")?.Value;
-                var email = jsonToken.Claims.FirstOrDefault(c => c.Type == "email" || c.Type == "emailaddress")?.Value;
-
-                System.Diagnostics.Debug.WriteLine($"🔍 JWT Claims - UserId: {userId}, Email: {email}");
-
-                return (expiry, userId, email);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error extrayendo información del JWT: {ex.Message}");
-                return (null, null, null);
-            }
-        }
+        #region Métodos auxiliares para JWT (para info únicamente)
 
         public static string ObtenerClaimDelToken(string claimType)
         {
@@ -394,6 +240,40 @@ namespace FrontMoviles.Servicios
             }
         }
 
+        // Método para obtener información del token solo para debugging
+        public static void ImprimirInformacionToken()
+        {
+            try
+            {
+                var token = ObtenerToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ No hay token");
+                    return;
+                }
+
+                var handler = new JwtSecurityTokenHandler();
+                var jsonToken = handler.ReadJwtToken(token);
+
+                System.Diagnostics.Debug.WriteLine("=== INFORMACIÓN DEL TOKEN ===");
+                System.Diagnostics.Debug.WriteLine($"📅 Emitido: {jsonToken.IssuedAt:yyyy-MM-dd HH:mm:ss} UTC");
+                System.Diagnostics.Debug.WriteLine($"⏰ Fecha exp en JWT: {jsonToken.ValidTo:yyyy-MM-dd HH:mm:ss} UTC (IGNORADA)");
+                System.Diagnostics.Debug.WriteLine($"🕐 Ahora: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+                System.Diagnostics.Debug.WriteLine($"🔍 Token válido: SÍ (backend nunca expira)");
+                System.Diagnostics.Debug.WriteLine("===============================");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error imprimiendo info del token: {ex.Message}");
+            }
+        }
+
+        // Método alias para compatibilidad
+        public static void ImprimirInformacionTokenDetallada()
+        {
+            ImprimirInformacionToken();
+        }
+
         #endregion
 
         #region Métodos de depuración y utilidad
@@ -404,33 +284,11 @@ namespace FrontMoviles.Servicios
             {
                 System.Diagnostics.Debug.WriteLine("=== INFORMACIÓN DE SESIÓN ===");
                 System.Diagnostics.Debug.WriteLine($"Logueado: {EstaLogueado()}");
-                System.Diagnostics.Debug.WriteLine($"Token expirado: {TokenExpirado()}");
+                System.Diagnostics.Debug.WriteLine($"Token expirado: {TokenExpirado()} (siempre FALSE)");
                 System.Diagnostics.Debug.WriteLine($"Email: {ObtenerEmailUsuario()}");
                 System.Diagnostics.Debug.WriteLine($"Nombre: {ObtenerNombreUsuario()}");
                 System.Diagnostics.Debug.WriteLine($"Session ID: {ObtenerSessionId()}");
                 System.Diagnostics.Debug.WriteLine($"User ID: {ObtenerIdUsuario()}");
-
-                var expiry = ObtenerFechaExpiracion();
-                if (expiry.HasValue)
-                {
-                    var ahora = DateTime.UtcNow;
-                    var tiempoRestante = expiry.Value.Subtract(ahora);
-
-                    System.Diagnostics.Debug.WriteLine($"Expira: {expiry.Value:yyyy-MM-dd HH:mm:ss} UTC");
-
-                    if (tiempoRestante.TotalSeconds > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Tiempo restante: {tiempoRestante:hh\\:mm\\:ss}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Expiró hace: {tiempoRestante.Negate():hh\\:mm\\:ss}");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("Expira: No se pudo determinar");
-                }
                 System.Diagnostics.Debug.WriteLine("===========================");
             }
             catch (Exception ex)
@@ -439,20 +297,11 @@ namespace FrontMoviles.Servicios
             }
         }
 
+        // Método simplificado ya que no hay expiración
         public static void LimpiarSesionExpirada()
         {
-            try
-            {
-                if (TokenExpirado())
-                {
-                    System.Diagnostics.Debug.WriteLine("🧹 Limpiando sesión expirada automáticamente");
-                    CerrarSesion();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error limpiando sesión expirada: {ex.Message}");
-            }
+            System.Diagnostics.Debug.WriteLine("🔍 LimpiarSesionExpirada() - No aplica, tokens nunca expiran");
+            // No hacer nada ya que los tokens nunca expiran
         }
 
         #endregion
