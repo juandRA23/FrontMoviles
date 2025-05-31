@@ -70,78 +70,56 @@
                            Keyboard="Telephone"
                            Style="{StaticResource EntryStyle}" />
                 </VerticalStackLayout>
+                <!-- Reemplazar toda la sección de ubicación en RegisterPage.xaml -->
 
                 <!-- Ubicación -->
                 <Label Text="Ubicación *" 
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       Margin="0,10,0,5" />
+       FontSize="16"
+       FontAttributes="Bold"
+       TextColor="{StaticResource TextPrimary}"
+       Margin="0,10,0,5" />
 
                 <!-- Provincia -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="Provincia *" 
-                           FontAttributes="Bold" />
+           FontAttributes="Bold" />
                     <Grid>
                         <Picker x:Name="ProvinciaPicker"
-                                Title="Seleccionar provincia"
-                                TitleColor="LightGray"
-                                TextColor="Black"
-                                FontSize="16"
-                                BackgroundColor="#F8F8F8"
-                                HeightRequest="50"
-                                SelectedIndexChanged="OnProvinciaSelectionChanged" />
+                Title="Seleccionar provincia"
+                TitleColor="LightGray"
+                TextColor="Black"
+                FontSize="16"
+                BackgroundColor="#F8F8F8"
+                HeightRequest="50"
+                SelectedIndexChanged="OnProvinciaSelectionChanged" />
                         <Label Text="▼" 
-                               TextColor="Gray"
-                               FontSize="12"
-                               HorizontalOptions="End"
-                               VerticalOptions="Center"
-                               Margin="0,0,15,0" />
+               TextColor="Gray"
+               FontSize="12"
+               HorizontalOptions="End"
+               VerticalOptions="Center"
+               Margin="0,0,15,0" />
                     </Grid>
                 </VerticalStackLayout>
 
                 <!-- Cantón -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="Cantón *" 
-                           FontAttributes="Bold" />
+           FontAttributes="Bold" />
                     <Grid>
                         <Picker x:Name="CantonPicker"
-                                Title="Seleccionar cantón"
-                                TitleColor="LightGray"
-                                TextColor="Black"
-                                FontSize="16"
-                                BackgroundColor="#F8F8F8"
-                                HeightRequest="50"
-                                IsEnabled="False"
-                                SelectedIndexChanged="OnCantonSelectionChanged" />
+                Title="Seleccionar cantón"
+                TitleColor="LightGray"
+                TextColor="Black"
+                FontSize="16"
+                BackgroundColor="#F8F8F8"
+                HeightRequest="50"
+                IsEnabled="False" />
                         <Label Text="▼" 
-                               TextColor="Gray"
-                               FontSize="12"
-                               HorizontalOptions="End"
-                               VerticalOptions="Center"
-                               Margin="0,0,15,0" />
-                    </Grid>
-                </VerticalStackLayout>
-
-                <!-- Distrito -->
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Distrito *" 
-                           FontAttributes="Bold" />
-                    <Grid>
-                        <Picker x:Name="DistritoPicker"
-                                Title="Seleccionar distrito"
-                                TitleColor="LightGray"
-                                TextColor="Black"
-                                FontSize="16"
-                                BackgroundColor="#F8F8F8"
-                                HeightRequest="50"
-                                IsEnabled="False" />
-                        <Label Text="▼" 
-                               TextColor="Gray"
-                               FontSize="12"
-                               HorizontalOptions="End"
-                               VerticalOptions="Center"
-                               Margin="0,0,15,0" />
+               TextColor="Gray"
+               FontSize="12"
+               HorizontalOptions="End"
+               VerticalOptions="Center"
+               Margin="0,0,15,0" />
                     </Grid>
                 </VerticalStackLayout>
 
@@ -149,8 +127,8 @@
                 <VerticalStackLayout Spacing="5">
                     <Label Text="Dirección exacta" />
                     <Entry x:Name="DireccionEntry"
-                           Placeholder="Ej: 200m norte de la iglesia"
-                           Style="{StaticResource EntryStyle}" />
+           Placeholder="Ej: 200m norte de la iglesia"
+           Style="{StaticResource EntryStyle}" />
                 </VerticalStackLayout>
 
                 <!-- Email -->

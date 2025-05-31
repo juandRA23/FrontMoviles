@@ -215,6 +215,12 @@ public partial class InicioPage : ContentPage
         }
     }
 
+    // NUEVO: Método para navegar al perfil al presionar el nombre
+    private async void OnNombreUsuarioClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new PerfilPage());
+    }
+
     #endregion
 
     #region Eventos de Categorías
@@ -263,14 +269,16 @@ public partial class InicioPage : ContentPage
 
     private async void OnPublicarClicked(object sender, EventArgs e)
     {
-       // await Navigation.PushAsync(new PublicarServicioPage());
-        //CambiarPestana("Publicar");
+        await DisplayAlert("Publicar", "Navegando a publicar servicio...", "OK");
+        // await Navigation.PushAsync(new PublicarServicioPage());
+        // CambiarPestana("Publicar");
     }
 
+    // ACTUALIZADO: Método para navegar al perfil
     private async void OnPerfilClicked(object sender, EventArgs e)
     {
-        //await Navigation.PushAsync(new PerfilPage());
-        //CambiarPestana("Perfil");
+        await Navigation.PushAsync(new PerfilPage());
+        CambiarPestana("Perfil");
     }
 
     private void CambiarPestana(string pestanaActiva)

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using FrontMoviles.Modelos;
 
-
 // Servicios/ApiService.cs
 using System.Text.Json.Serialization;
 
@@ -24,7 +23,36 @@ namespace FrontMoviles.Servicios
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         }
 
-        public async Task<ResVerificacion> VerificarUsuarioAsync(ReqVerificacion request)
+        #region Métodos de Autenticación por Sesión
+
+        // Método para configurar headers de autenticación
+        private void ConfigurarAutenticacion()
+        {
+            var token = SessionManager.ObtenerToken();
+            var sessionId = SessionManager.ObtenerSessionId();
+
+            // Limpiar headers anteriores
+            _httpClient.DefaultRequestHeaders.Remove("Authorization");
+            _httpClient.DefaultRequestHeaders.Remove("SessionId");
+
+            // Agregar headers de autenticación
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+            }
+
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                _httpClient.DefaultRequestHeaders.Add("SessionId", sessionId);
+            }
+        }
+
+        #endregion
+
+        #region Métodos de Usuario
+
+        // Método para registrar usuario
+        public async Task<ResInsertarUsuario> RegistrarUsuarioAsync(ReqInsertarUsuario request)
         {
             try
             {
@@ -38,66 +66,53 @@ namespace FrontMoviles.Servicios
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 // Hacer la petición POST
-                var response = await _httpClient.PostAsync("api/usuario/verificar", content);
+                var response = await _httpClient.PostAsync("api/usuario/insertar", content);
 
                 // Leer la respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    try
+                    // Deserializar la respuesta exitosa
+                    var result = JsonSerializer.Deserialize<ResInsertarUsuario>(responseContent, new JsonSerializerOptions
                     {
-                        // Opciones de deserialización
-                        var options = new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true,
-                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-                        };
+                        PropertyNameCaseInsensitive = true
+                    });
 
-                        var result = JsonSerializer.Deserialize<ResVerificacion>(responseContent, options);
-
-                        return result ?? CreateVerificacionErrorResponse(-4, "Respuesta vacía del servidor");
-                    }
-                    catch (JsonException jsonEx)
-                    {
-                        return CreateVerificacionErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
-                    }
+                    return result ?? CreateInsertarUsuarioErrorResponse(-4, "Respuesta vacía del servidor");
                 }
                 else
                 {
                     // Si hay error HTTP, intentar deserializar el error
                     try
                     {
-                        var options = new JsonSerializerOptions
+                        var errorResult = JsonSerializer.Deserialize<ResInsertarUsuario>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true,
-                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-                        };
-
-                        var errorResult = JsonSerializer.Deserialize<ResVerificacion>(responseContent, options);
-                        return errorResult ?? CreateVerificacionErrorResponse((int)response.StatusCode, $"Error HTTP: {response.StatusCode}");
+                            PropertyNameCaseInsensitive = true
+                        });
+                        return errorResult ?? CreateInsertarUsuarioErrorResponse((int)response.StatusCode, $"Error HTTP: {response.StatusCode}");
                     }
                     catch
                     {
-                        return CreateVerificacionErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                        return CreateInsertarUsuarioErrorResponse((int)response.StatusCode, responseContent);
                     }
                 }
             }
             catch (HttpRequestException ex)
             {
-                return CreateVerificacionErrorResponse(-1, $"Error de conexión: {ex.Message}");
+                return CreateInsertarUsuarioErrorResponse(-1, $"Error de conexión: {ex.Message}");
             }
             catch (TaskCanceledException ex)
             {
-                return CreateVerificacionErrorResponse(-2, "Tiempo de espera agotado");
+                return CreateInsertarUsuarioErrorResponse(-2, "Tiempo de espera agotado");
             }
             catch (Exception ex)
             {
-                return CreateVerificacionErrorResponse(-3, $"Error inesperado: {ex.Message}");
+                return CreateInsertarUsuarioErrorResponse(-3, $"Error inesperado: {ex.Message}");
             }
         }
 
-        private ResVerificacion CreateVerificacionErrorResponse(int errorCode, string message)
+        private ResInsertarUsuario CreateInsertarUsuarioErrorResponse(int errorCode, string message)
         {
             var errorList = new List<ErrorItem>();
             var errorItem = new ErrorItem
@@ -107,12 +122,250 @@ namespace FrontMoviles.Servicios
             };
             errorList.Add(errorItem);
 
-            return new ResVerificacion
+            return new ResInsertarUsuario
             {
                 Resultado = false,
                 Error = errorList
             };
         }
+
+        // Método mejorado para obtener usuario usando sesión
+        public async Task<ResObtenerUsuario> ObtenerUsuarioConSesionAsync()
+        {
+            try
+            {
+                // Verificar si hay sesión activa
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateObtenerUsuarioErrorResponse(-10, "No hay sesión activa. Por favor, inicia sesión.");
+                }
+
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateObtenerUsuarioErrorResponse(-11, "La sesión ha expirado. Por favor, inicia sesión nuevamente.");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Obtener información de sesión
+                
+
+                // Crear el request con la información de sesión
+                var request = new ReqObtenerUsuario
+                {
+                    Usuario = new UsuarioObtener
+                    {
+                        UsuarioId = SessionManager.ObtenerSessionId(),
+                        Correo = sessionInfo.UserEmail
+                    }
+                };
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"Request JSON: {json}");
+                System.Diagnostics.Debug.WriteLine($"Token: {sessionInfo.Token}");
+                System.Diagnostics.Debug.WriteLine($"SessionId: {sessionInfo.SessionId}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/usuario/obtener", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResObtenerUsuario>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateObtenerUsuarioErrorResponse(-4, "Respuesta vacía del servidor");
+                        }
+
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateObtenerUsuarioErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401 (No autorizado), la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateObtenerUsuarioErrorResponse(-12, "Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResObtenerUsuario>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateObtenerUsuarioErrorResponse((int)response.StatusCode, $"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        // Método original para obtener usuario (mantener compatibilidad)
+        public async Task<ResObtenerUsuario> ObtenerUsuarioAsync(string correo = null, int usuarioId = 0)
+        {
+            try
+            {
+                // Crear el request con la información disponible
+                var request = new ReqObtenerUsuario
+                {
+                    Usuario = new UsuarioObtener
+                    {
+                        UsuarioId = usuarioId,
+                        Correo = correo ?? string.Empty,
+                        // Inicializar otros campos para evitar errores de serialización
+                        Nombre = "",
+                        Apellido1 = "",
+                        Apellido2 = "",
+                        FechaNacimiento = default(DateTime),
+                        FotoPerfil = "",
+                        Telefono = "",
+                        Direccion = "",
+                        Contrasena = "",
+                        Salt = "",
+                        Verificacion = 0,
+                        Activo = true,
+                        PerfilCompleto = false,
+                        CreatedAt = default(DateTime),
+                        UpdatedAt = default(DateTime)
+                    }
+                };
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+                });
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/usuario/obtener", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResObtenerUsuario>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateObtenerUsuarioErrorResponse(-4, "Respuesta vacía del servidor");
+                        }
+
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateObtenerUsuarioErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    return CreateObtenerUsuarioErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                return CreateObtenerUsuarioErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResObtenerUsuario CreateObtenerUsuarioErrorResponse(int errorCode, string message)
+        {
+            var errorList = new List<ErrorItem>();
+            var errorItem = new ErrorItem
+            {
+                ErrorCode = errorCode,
+                Message = message
+            };
+            errorList.Add(errorItem);
+
+            return new ResObtenerUsuario
+            {
+                Resultado = false,
+                Error = errorList,
+                Usuario = null
+            };
+        }
+
+        #endregion
+
+        #region Métodos de Login
 
         public async Task<ResLoginUsuario> LoginUsuarioAsync(ReqLoginUsuario request)
         {
@@ -207,12 +460,11 @@ namespace FrontMoviles.Servicios
             };
         }
 
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
+        #endregion
 
-        public async Task<ResInsertarUsuario> RegistrarUsuarioAsync(ReqInsertarUsuario request)
+        #region Métodos de Verificación
+
+        public async Task<ResVerificacion> VerificarUsuarioAsync(ReqVerificacion request)
         {
             try
             {
@@ -226,53 +478,66 @@ namespace FrontMoviles.Servicios
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 // Hacer la petición POST
-                var response = await _httpClient.PostAsync("api/usuario/insertar", content);
+                var response = await _httpClient.PostAsync("api/usuario/verificar", content);
 
                 // Leer la respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Deserializar la respuesta exitosa
-                    var result = JsonSerializer.Deserialize<ResInsertarUsuario>(responseContent, new JsonSerializerOptions
+                    try
                     {
-                        PropertyNameCaseInsensitive = true
-                    });
+                        // Opciones de deserialización
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
 
-                    return result ?? CreateErrorResponse(-4, "Respuesta vacía del servidor");
+                        var result = JsonSerializer.Deserialize<ResVerificacion>(responseContent, options);
+
+                        return result ?? CreateVerificacionErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateVerificacionErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
                 }
                 else
                 {
                     // Si hay error HTTP, intentar deserializar el error
                     try
                     {
-                        var errorResult = JsonSerializer.Deserialize<ResInsertarUsuario>(responseContent, new JsonSerializerOptions
+                        var options = new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
-                        });
-                        return errorResult ?? CreateErrorResponse((int)response.StatusCode, $"Error HTTP: {response.StatusCode}");
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResVerificacion>(responseContent, options);
+                        return errorResult ?? CreateVerificacionErrorResponse((int)response.StatusCode, $"Error HTTP: {response.StatusCode}");
                     }
                     catch
                     {
-                        return CreateErrorResponse((int)response.StatusCode, responseContent);
+                        return CreateVerificacionErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
                     }
                 }
             }
             catch (HttpRequestException ex)
             {
-                return CreateErrorResponse(-1, $"Error de conexión: {ex.Message}");
+                return CreateVerificacionErrorResponse(-1, $"Error de conexión: {ex.Message}");
             }
             catch (TaskCanceledException ex)
             {
-                return CreateErrorResponse(-2, "Tiempo de espera agotado");
+                return CreateVerificacionErrorResponse(-2, "Tiempo de espera agotado");
             }
             catch (Exception ex)
             {
-                return CreateErrorResponse(-3, $"Error inesperado: {ex.Message}");
+                return CreateVerificacionErrorResponse(-3, $"Error inesperado: {ex.Message}");
             }
         }
 
-        private ResInsertarUsuario CreateErrorResponse(int errorCode, string message)
+        private ResVerificacion CreateVerificacionErrorResponse(int errorCode, string message)
         {
             var errorList = new List<ErrorItem>();
             var errorItem = new ErrorItem
@@ -282,156 +547,373 @@ namespace FrontMoviles.Servicios
             };
             errorList.Add(errorItem);
 
-            return new ResInsertarUsuario
+            return new ResVerificacion
             {
                 Resultado = false,
                 Error = errorList
             };
         }
 
-        // Método para obtener provincias desde la base de datos
-        public async Task<List<Provincia>> ObtenerProvinciasAsync()
+        #endregion
+
+        #region Métodos de Categorías y Servicios
+
+        // Método para obtener categorías
+        public async Task<ResListarCategorias> ObtenerCategoriasAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/provincia/obtener");
+                // Hacer la petición GET
+                var response = await _httpClient.GetAsync("api/categoria/listar");
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-
-                    // Si tu API devuelve directamente una lista
-                    var provincias = JsonSerializer.Deserialize<List<Provincia>>(content, new JsonSerializerOptions
+                    try
                     {
-                        PropertyNameCaseInsensitive = true
-                    });
-                    return provincias ?? new List<Provincia>();
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarCategorias>(responseContent, options);
+                        return result ?? CreateCategoriasErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateCategoriasErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
                 }
                 else
                 {
-                    // Si falla, usar datos mock como respaldo
-                    return GetMockProvincias();
+                    return CreateCategoriasErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateCategoriasErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateCategoriasErrorResponse(-2, "Tiempo de espera agotado");
             }
             catch (Exception ex)
             {
-                // En caso de error, usar datos mock
-                return GetMockProvincias();
+                return CreateCategoriasErrorResponse(-3, $"Error inesperado: {ex.Message}");
             }
         }
 
-        private List<Provincia> GetMockProvincias()
+        private ResListarCategorias CreateCategoriasErrorResponse(int errorCode, string message)
         {
-            var provincias = new List<Provincia>();
-            provincias.Add(new Provincia { ProvinciaId = 1, Nombre = "San José" });
-            provincias.Add(new Provincia { ProvinciaId = 2, Nombre = "Alajuela" });
-            provincias.Add(new Provincia { ProvinciaId = 3, Nombre = "Cartago" });
-            provincias.Add(new Provincia { ProvinciaId = 4, Nombre = "Heredia" });
-            provincias.Add(new Provincia { ProvinciaId = 5, Nombre = "Guanacaste" });
-            provincias.Add(new Provincia { ProvinciaId = 6, Nombre = "Puntarenas" });
-            provincias.Add(new Provincia { ProvinciaId = 7, Nombre = "Limón" });
-            return provincias;
+            return new ResListarCategorias
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Categorias = new List<Categoria>()
+            };
+        }
+
+        // Método para obtener subcategorías
+        public async Task<ResListarSubCategorias> ObtenerSubCategoriasAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("api/subcategoria/listar");
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarSubCategorias>(responseContent, options);
+                        return result ?? CreateSubCategoriasErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateSubCategoriasErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    return CreateSubCategoriasErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateSubCategoriasErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateSubCategoriasErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                return CreateSubCategoriasErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResListarSubCategorias CreateSubCategoriasErrorResponse(int errorCode, string message)
+        {
+            return new ResListarSubCategorias
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                SubCategorias = new List<SubCategoria>()
+            };
+        }
+
+        // Método para crear servicio
+        public async Task<ResInsertarServicio> CrearServicioAsync(ReqInsertarServicio request)
+        {
+            try
+            {
+                // Verificar sesión
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateServicioErrorResponse(-10, "No hay sesión activa");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"JSON enviado: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/servicio/insertar", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"Response: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResInsertarServicio>(responseContent, options);
+                        return result ?? CreateServicioErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateServicioErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401, la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateServicioErrorResponse(-12, "Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResInsertarServicio>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateServicioErrorResponse((int)response.StatusCode, $"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateServicioErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateServicioErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                return CreateServicioErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResInsertarServicio CreateServicioErrorResponse(int errorCode, string message)
+        {
+            return new ResInsertarServicio
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                ServicioId = 0,
+                Mensaje = ""
+            };
+        }
+
+        #endregion
+
+        #region Métodos de Ubicación
+
+        // Método para obtener provincias desde la base de datos
+        public async Task<ResListarProvincias> ObtenerProvinciasAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("api/provincia/listar");
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarProvincias>(responseContent, options);
+                        return result ?? CreateProvinciasErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateProvinciasErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    return CreateProvinciasErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateProvinciasErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateProvinciasErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                return CreateProvinciasErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResListarProvincias CreateProvinciasErrorResponse(int errorCode, string message)
+        {
+            return new ResListarProvincias
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Provincias = new List<Provincia>()
+            };
         }
 
         // Método para obtener cantones desde la base de datos
-        public async Task<List<Canton>> ObtenerCantonesPorProvinciaAsync(int provinciaId)
+        public async Task<ResListarCantones> ObtenerCantonesAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/canton/obtener/{provinciaId}");
+                var response = await _httpClient.GetAsync("api/canton/listar");
+                var responseContent = await response.Content.ReadAsStringAsync();
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-
-                    // Si tu API devuelve directamente una lista
-                    var cantones = JsonSerializer.Deserialize<List<Canton>>(content, new JsonSerializerOptions
+                    try
                     {
-                        PropertyNameCaseInsensitive = true
-                    });
-                    return cantones ?? new List<Canton>();
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarCantones>(responseContent, options);
+                        return result ?? CreateCantonesErrorResponse(-4, "Respuesta vacía del servidor");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        return CreateCantonesErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
                 }
                 else
                 {
-                    // Si falla, usar datos mock como respaldo
-                    return GetMockCantones(provinciaId);
+                    return CreateCantonesErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                return CreateCantonesErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                return CreateCantonesErrorResponse(-2, "Tiempo de espera agotado");
             }
             catch (Exception ex)
             {
-                // En caso de error, usar datos mock
-                return GetMockCantones(provinciaId);
+                return CreateCantonesErrorResponse(-3, $"Error inesperado: {ex.Message}");
             }
         }
 
-        private List<Canton> GetMockCantones(int provinciaId)
+        private ResListarCantones CreateCantonesErrorResponse(int errorCode, string message)
         {
-            var cantones = new List<Canton>();
-
-            if (provinciaId == 1)
+            return new ResListarCantones
             {
-                var provincia = new Provincia { ProvinciaId = 1, Nombre = "San José" };
-                cantones.Add(new Canton { CantonId = 1, Nombre = "San José", Provincia = provincia });
-                cantones.Add(new Canton { CantonId = 2, Nombre = "Escazú", Provincia = provincia });
-                cantones.Add(new Canton { CantonId = 3, Nombre = "Desamparados", Provincia = provincia });
-            }
-
-            return cantones;
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Cantones = new List<Canton>()
+            };
         }
 
-        // Método para obtener distritos desde la base de datos  
-        public async Task<List<Distrito>> ObtenerDistritosPorCantonAsync(int cantonId)
+        // Método auxiliar para filtrar cantones por provincia (en el cliente)
+        public List<Canton> FiltrarCantonesPorProvincia(List<Canton> cantones, int provinciaId)
         {
-            try
-            {
-                var response = await _httpClient.GetAsync($"api/distrito/obtener/{cantonId}");
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-
-                    // Si tu API devuelve directamente una lista
-                    var distritos = JsonSerializer.Deserialize<List<Distrito>>(content, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-                    return distritos ?? new List<Distrito>();
-                }
-                else
-                {
-                    // Si falla, usar datos mock como respaldo
-                    return GetMockDistritos(cantonId);
-                }
-            }
-            catch (Exception ex)
-            {
-                // En caso de error, usar datos mock
-                return GetMockDistritos(cantonId);
-            }
+            return cantones?.Where(c => c.Provincia?.ProvinciaId == provinciaId).ToList() ?? new List<Canton>();
         }
 
-        private List<Distrito> GetMockDistritos(int cantonId)
+        #endregion
+
+        #region Cleanup
+
+        public void Dispose()
         {
-            var distritos = new List<Distrito>();
-
-            if (cantonId == 1) // San José
-            {
-                var provincia = new Provincia { ProvinciaId = 1, Nombre = "San José" };
-                var canton = new Canton { CantonId = 1, Nombre = "San José", Provincia = provincia };
-
-                distritos.Add(new Distrito { DistritoId = 1, Nombre = "Carmen", Canton = canton });
-                distritos.Add(new Distrito { DistritoId = 2, Nombre = "Merced", Canton = canton });
-                distritos.Add(new Distrito { DistritoId = 3, Nombre = "Hospital", Canton = canton });
-                distritos.Add(new Distrito { DistritoId = 4, Nombre = "Catedral", Canton = canton });
-            }
-            else if (cantonId == 2) // Escazú
-            {
-                var provincia = new Provincia { ProvinciaId = 1, Nombre = "San José" };
-                var canton = new Canton { CantonId = 2, Nombre = "Escazú", Provincia = provincia };
-
-                distritos.Add(new Distrito { DistritoId = 5, Nombre = "Escazú", Canton = canton });
-                distritos.Add(new Distrito { DistritoId = 6, Nombre = "San Antonio", Canton = canton });
-                distritos.Add(new Distrito { DistritoId = 7, Nombre = "San Rafael", Canton = canton });
-            }
-
-            return distritos;
+            _httpClient?.Dispose();
         }
+
+        #endregion
     }
 }

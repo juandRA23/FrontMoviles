@@ -10,7 +10,7 @@ public partial class RegisterPage : ContentPage
     private bool _isPasswordVisible = false;
     private List<Provincia> _provincias;
     private List<Canton> _cantones;
-    private List<Distrito> _distritos;
+    private List<Canton> _cantonesFiltrados;
 
     // Propiedades para el binding de fechas
     public DateTime MaxDate => DateTime.Now.AddYears(-18);
@@ -20,6 +20,9 @@ public partial class RegisterPage : ContentPage
     {
         InitializeComponent();
         _apiService = new ApiService();
+        _provincias = new List<Provincia>();
+        _cantones = new List<Canton>();
+        _cantonesFiltrados = new List<Canton>();
 
         // Establecer el BindingContext para las fechas
         BindingContext = this;
@@ -27,8 +30,8 @@ public partial class RegisterPage : ContentPage
         // Configurar fechas
         ConfigurarFechas();
 
-        // Cargar provincias
-        CargarProvincias();
+        // Cargar datos de ubicación
+        CargarDatosUbicacion();
     }
 
     #region Configuración Inicial
@@ -41,80 +44,124 @@ public partial class RegisterPage : ContentPage
         FechaNacimientoPicker.Date = DateTime.Now.AddYears(-25); // Fecha por defecto
     }
 
-    private async void CargarProvincias()
+    private async void CargarDatosUbicacion()
     {
         try
         {
-            _provincias = await _apiService.ObtenerProvinciasAsync();
+            // Cargar provincias y cantones en paralelo
+            var provinciasTask = _apiService.ObtenerProvinciasAsync();
+            var cantonesTask = _apiService.ObtenerCantonesAsync();
 
-            ProvinciaPicker.ItemsSource = _provincias;
-            ProvinciaPicker.ItemDisplayBinding = new Binding("Nombre");
+            await Task.WhenAll(provinciasTask, cantonesTask);
+
+            var provinciasResponse = await provinciasTask;
+            var cantonesResponse = await cantonesTask;
+
+            // Verificar respuestas
+            if (provinciasResponse.Resultado)
+            {
+                _provincias = provinciasResponse.Provincias ?? new List<Provincia>();
+                CargarProvinciasEnPicker();
+            }
+            else
+            {
+                // Si falla, usar datos mock
+                _provincias = GetMockProvincias();
+                CargarProvinciasEnPicker();
+            }
+
+            if (cantonesResponse.Resultado)
+            {
+                _cantones = cantonesResponse.Cantones ?? new List<Canton>();
+            }
+            else
+            {
+                // Si falla, usar datos mock
+                _cantones = GetMockCantones();
+            }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error al cargar provincias: {ex.Message}", "OK");
+            // En caso de error, usar datos mock
+            _provincias = GetMockProvincias();
+            _cantones = GetMockCantones();
+            CargarProvinciasEnPicker();
+
+            await DisplayAlert("Advertencia", "Error al cargar ubicaciones. Usando datos locales.", "OK");
         }
+    }
+
+    private void CargarProvinciasEnPicker()
+    {
+        ProvinciaPicker.ItemsSource = null;
+        if (_provincias.Any())
+        {
+            var provinciasNombres = _provincias.Select(p => p.Nombre).ToList();
+            ProvinciaPicker.ItemsSource = provinciasNombres;
+        }
+    }
+
+    private List<Provincia> GetMockProvincias()
+    {
+        var provincias = new List<Provincia>();
+        provincias.Add(new Provincia { ProvinciaId = 1, Nombre = "San José" });
+        provincias.Add(new Provincia { ProvinciaId = 2, Nombre = "Alajuela" });
+        provincias.Add(new Provincia { ProvinciaId = 3, Nombre = "Cartago" });
+        provincias.Add(new Provincia { ProvinciaId = 4, Nombre = "Heredia" });
+        provincias.Add(new Provincia { ProvinciaId = 5, Nombre = "Guanacaste" });
+        provincias.Add(new Provincia { ProvinciaId = 6, Nombre = "Puntarenas" });
+        provincias.Add(new Provincia { ProvinciaId = 7, Nombre = "Limón" });
+        return provincias;
+    }
+
+    private List<Canton> GetMockCantones()
+    {
+        var cantones = new List<Canton>();
+        var sanJose = new Provincia { ProvinciaId = 1, Nombre = "San José" };
+
+        cantones.Add(new Canton { CantonId = 1, Nombre = "San José", Provincia = sanJose });
+        cantones.Add(new Canton { CantonId = 2, Nombre = "Escazú", Provincia = sanJose });
+        cantones.Add(new Canton { CantonId = 3, Nombre = "Desamparados", Provincia = sanJose });
+        cantones.Add(new Canton { CantonId = 4, Nombre = "Puriscal", Provincia = sanJose });
+        cantones.Add(new Canton { CantonId = 5, Nombre = "Tarrazú", Provincia = sanJose });
+
+        return cantones;
     }
 
     #endregion
 
     #region Eventos de Selección
 
-    private async void OnProvinciaSelectionChanged(object sender, EventArgs e)
+    private void OnProvinciaSelectionChanged(object sender, EventArgs e)
     {
         var picker = sender as Picker;
-        if (picker.SelectedItem is Provincia provinciaSeleccionada)
+        if (picker?.SelectedIndex >= 0 && picker.SelectedIndex < _provincias.Count)
         {
-            try
-            {
-                // Limpiar cantones y distritos
-                CantonPicker.ItemsSource = null;
-                DistritoPicker.ItemsSource = null;
-                CantonPicker.IsEnabled = false;
-                DistritoPicker.IsEnabled = false;
-
-                // Cargar cantones
-                _cantones = await _apiService.ObtenerCantonesPorProvinciaAsync(provinciaSeleccionada.ProvinciaId);
-
-                if (_cantones.Any())
-                {
-                    CantonPicker.ItemsSource = _cantones;
-                    CantonPicker.ItemDisplayBinding = new Binding("Nombre");
-                    CantonPicker.IsEnabled = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Error", $"Error al cargar cantones: {ex.Message}", "OK");
-            }
+            var provinciaSeleccionada = _provincias[picker.SelectedIndex];
+            CargarCantonesPorProvincia(provinciaSeleccionada.ProvinciaId);
         }
     }
 
-    private async void OnCantonSelectionChanged(object sender, EventArgs e)
+    private void CargarCantonesPorProvincia(int provinciaId)
     {
-        var picker = sender as Picker;
-        if (picker.SelectedItem is Canton cantonSeleccionado)
+        try
         {
-            try
-            {
-                // Limpiar distritos
-                DistritoPicker.ItemsSource = null;
-                DistritoPicker.IsEnabled = false;
+            // Filtrar cantones por provincia seleccionada
+            _cantonesFiltrados = _apiService.FiltrarCantonesPorProvincia(_cantones, provinciaId);
 
-                // Cargar distritos
-                _distritos = await _apiService.ObtenerDistritosPorCantonAsync(cantonSeleccionado.CantonId);
+            CantonPicker.ItemsSource = null;
+            CantonPicker.IsEnabled = false;
 
-                if (_distritos.Any())
-                {
-                    DistritoPicker.ItemsSource = _distritos;
-                    DistritoPicker.ItemDisplayBinding = new Binding("Nombre");
-                    DistritoPicker.IsEnabled = true;
-                }
-            }
-            catch (Exception ex)
+            if (_cantonesFiltrados.Any())
             {
-                await DisplayAlert("Error", $"Error al cargar distritos: {ex.Message}", "OK");
+                var cantonesNombres = _cantonesFiltrados.Select(c => c.Nombre).ToList();
+                CantonPicker.ItemsSource = cantonesNombres;
+                CantonPicker.IsEnabled = true;
             }
+        }
+        catch (Exception ex)
+        {
+            DisplayAlert("Error", $"Error al cargar cantones: {ex.Message}", "OK");
         }
     }
 
@@ -149,21 +196,15 @@ public partial class RegisterPage : ContentPage
         }
 
         // Validar ubicación
-        if (ProvinciaPicker.SelectedItem == null)
+        if (ProvinciaPicker.SelectedIndex < 0)
         {
             errores.Add("Debes seleccionar una provincia");
             esValido = false;
         }
 
-        if (CantonPicker.SelectedItem == null)
+        if (CantonPicker.SelectedIndex < 0)
         {
             errores.Add("Debes seleccionar un cantón");
-            esValido = false;
-        }
-
-        if (DistritoPicker.SelectedItem == null)
-        {
-            errores.Add("Debes seleccionar un distrito");
             esValido = false;
         }
 
@@ -325,10 +366,19 @@ public partial class RegisterPage : ContentPage
             button.Text = "Registrando...";
             button.IsEnabled = false;
 
-            // Obtener los objetos seleccionados
-            var provinciaSeleccionada = ProvinciaPicker.SelectedItem as Provincia;
-            var cantonSeleccionado = CantonPicker.SelectedItem as Canton;
-            var distritoSeleccionado = DistritoPicker.SelectedItem as Distrito;
+            // Obtener ubicación seleccionada
+            Provincia provinciaSeleccionada = null;
+            Canton cantonSeleccionado = null;
+
+            if (ProvinciaPicker.SelectedIndex >= 0 && ProvinciaPicker.SelectedIndex < _provincias.Count)
+            {
+                provinciaSeleccionada = _provincias[ProvinciaPicker.SelectedIndex];
+            }
+
+            if (CantonPicker.SelectedIndex >= 0 && CantonPicker.SelectedIndex < _cantonesFiltrados.Count)
+            {
+                cantonSeleccionado = _cantonesFiltrados[CantonPicker.SelectedIndex];
+            }
 
             // Crear el objeto de request
             var request = new ReqInsertarUsuario
@@ -345,10 +395,10 @@ public partial class RegisterPage : ContentPage
                     Direccion = DireccionEntry.Text?.Trim() ?? "",
                     FotoPerfil = "",
 
-                    // Ubicación seleccionada
+                    // Ubicación seleccionada (sin distrito)
                     Provincia = provinciaSeleccionada,
                     Canton = cantonSeleccionado,
-                    Distrito = distritoSeleccionado,
+
 
                     // Valores por defecto
                     UsuarioId = 0,

@@ -50,7 +50,11 @@
                                 <Label x:Name="SaludoLabel"
                                        Text="¡Bienvenido de vuelta!" 
                                        FontSize="12" 
-                                       TextColor="White" />
+                                       TextColor="White">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnNombreUsuarioClicked" />
+                                    </Label.GestureRecognizers>
+                                </Label>
                             </StackLayout>
                         </StackLayout>
 
