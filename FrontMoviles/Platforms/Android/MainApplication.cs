@@ -3,7 +3,7 @@ using Android.Runtime;
 
 namespace FrontMoviles;
 
-[Application]
+[Application(Debuggable = true, UsesCleartextTraffic = true)]
 public class MainApplication : MauiApplication
 {
 	public MainApplication(IntPtr handle, JniHandleOwnership ownership)
