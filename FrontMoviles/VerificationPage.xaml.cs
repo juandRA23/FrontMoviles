@@ -1,6 +1,6 @@
-using FrontMoviles.Modelos;
+﻿// FrontMoviles/VerificationPage.xaml.cs
 using FrontMoviles.Servicios;
-using System.Timers;
+using FrontMoviles.Modelos;
 
 namespace FrontMoviles;
 
@@ -8,203 +8,297 @@ public partial class VerificationPage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly string _userEmail;
-    private System.Timers.Timer _resendTimer;
-    private int _secondsRemaining = 60;
+    private bool _canResend = true;
+    private int _timerSeconds = 60;
 
     public VerificationPage(string userEmail)
     {
         InitializeComponent();
         _apiService = new ApiService();
-        _userEmail = userEmail;
+        _userEmail = userEmail?.Trim().ToLower() ?? string.Empty;
 
-        SetupUI();
-        StartResendTimer();
+        // Configurar la página
+        ConfigurarPagina();
     }
 
-    #region Configuraci�n Inicial
+    #region Configuración inicial
 
-    private void SetupUI()
+    private void ConfigurarPagina()
     {
-        UserEmailLabel.Text = _userEmail;
-        VerificationCodeEntry.Focus();
-    }
-
-    private void StartResendTimer()
-    {
-        ResendLabel.IsVisible = false;
-        TimerLabel.IsVisible = true;
-
-        _resendTimer = new System.Timers.Timer(1000); // 1 segundo
-        _resendTimer.Elapsed += OnTimerElapsed;
-        _resendTimer.Start();
-    }
-
-    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
-    {
-        _secondsRemaining--;
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        try
         {
-            if (_secondsRemaining <= 0)
-            {
-                _resendTimer?.Stop();
-                TimerLabel.IsVisible = false;
-                ResendLabel.IsVisible = true;
-                _secondsRemaining = 60;
-            }
-            else
-            {
-                TimerLabel.Text = $"Puedes reenviar en {_secondsRemaining} segundos";
-            }
-        });
-    }
+            // Mostrar el email del usuario
+            UserEmailLabel.Text = _userEmail;
 
-    #endregion
+            // Configurar focus en el campo de código
+            VerificationCodeEntry.Focus();
 
-    #region Manejo de C�digo
-
-    private void OnCodeTextChanged(object sender, TextChangedEventArgs e)
-    {
-        // Solo permitir n�meros
-        if (!string.IsNullOrEmpty(e.NewTextValue))
-        {
-            var validCode = new string(e.NewTextValue.Where(char.IsDigit).ToArray());
-            if (validCode != e.NewTextValue)
-            {
-                VerificationCodeEntry.Text = validCode;
-                return;
-            }
+            System.Diagnostics.Debug.WriteLine($"📧 Página de verificación configurada para: {_userEmail}");
         }
-
-        // Verificar si se complet� el c�digo (6 d�gitos)
-        CheckCodeCompletion();
-
-        // Ocultar mensaje de error si est� visible
-        ErrorLabel.IsVisible = false;
-    }
-
-    private void CheckCodeCompletion()
-    {
-        bool isComplete = !string.IsNullOrEmpty(VerificationCodeEntry.Text) && VerificationCodeEntry.Text.Length == 6;
-        VerifyButton.IsEnabled = isComplete;
-    }
-
-    private void ClearCode()
-    {
-        VerificationCodeEntry.Text = "";
-        VerificationCodeEntry.Focus();
-        VerifyButton.IsEnabled = false;
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error configurando página: {ex.Message}");
+            DisplayAlert("Error", "Error al configurar la página de verificación", "OK");
+        }
     }
 
     #endregion
 
     #region Eventos de UI
 
+    private void OnCodeTextChanged(object sender, TextChangedEventArgs e)
+    {
+        try
+        {
+            var code = e.NewTextValue?.Trim() ?? string.Empty;
+
+            // Habilitar/deshabilitar botón según longitud del código
+            VerifyButton.IsEnabled = code.Length == 6;
+
+            // Ocultar mensaje de error al escribir
+            ErrorLabel.IsVisible = false;
+
+            // Auto-verificar si el código tiene 6 dígitos
+            if (code.Length == 6 && code.All(char.IsDigit))
+            {
+                OnVerifyClicked(sender, e);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"🔢 Código ingresado: {code} (longitud: {code.Length})");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error en cambio de texto: {ex.Message}");
+        }
+    }
+
     private async void OnVerifyClicked(object sender, EventArgs e)
     {
-        if (!VerifyButton.IsEnabled)
+        if (string.IsNullOrWhiteSpace(VerificationCodeEntry.Text) || VerificationCodeEntry.Text.Length != 6)
+        {
+            MostrarError("Por favor ingresa un código de 6 dígitos");
             return;
+        }
 
         try
         {
             // Mostrar indicador de carga
             VerifyButton.Text = "Verificando...";
             VerifyButton.IsEnabled = false;
+            ErrorLabel.IsVisible = false;
 
-            // Obtener el c�digo
-            var codeString = VerificationCodeEntry.Text;
-            if (!int.TryParse(codeString, out int verificationCode))
-            {
-                ShowError("C�digo inv�lido");
-                return;
-            }
-
-            // Crear el request
+            // Crear request de verificación
             var request = new ReqVerificacion
             {
                 Correo = _userEmail,
-                Verificacion = verificationCode
+                Verificacion = int.Parse(VerificationCodeEntry.Text)
             };
+
+            System.Diagnostics.Debug.WriteLine($"🔄 Verificando código {VerificationCodeEntry.Text} para {_userEmail}");
 
             // Llamar al API
             var response = await _apiService.VerificarUsuarioAsync(request);
 
-            // Procesar respuesta
             if (response.Resultado)
             {
-                await DisplayAlert("�xito", "Cuenta verificada exitosamente", "OK");
+                // Verificación exitosa
+                System.Diagnostics.Debug.WriteLine("✅ Verificación exitosa");
+
+                await DisplayAlert("¡Éxito!",
+                    "Tu cuenta ha sido verificada correctamente. Ahora puedes iniciar sesión.",
+                    "Continuar");
 
                 // Navegar al login
-                Application.Current.MainPage = new NavigationPage(new LoginPage());
+                await NavigateToLogin();
             }
             else
             {
-                // Mostrar errores del servidor
-                var mensajesError = response.Error?.Select(e => e.Message) ?? new[] { "C�digo de verificaci�n incorrecto" };
-                var mensaje = string.Join("\n", mensajesError);
-                ShowError(mensaje);
+                // Verificación fallida
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Código incorrecto";
+                System.Diagnostics.Debug.WriteLine($"❌ Verificación fallida: {errorMessage}");
 
-                // Limpiar el c�digo para que el usuario vuelva a intentar
-                ClearCode();
+                MostrarError("Código incorrecto. Intenta de nuevo.");
+
+                // Limpiar el campo para nuevo intento
+                VerificationCodeEntry.Text = "";
+                VerificationCodeEntry.Focus();
             }
         }
         catch (Exception ex)
         {
-            ShowError($"Error inesperado: {ex.Message}");
-            ClearCode();
+            System.Diagnostics.Debug.WriteLine($"💥 Excepción en verificación: {ex.Message}");
+            MostrarError("Error inesperado. Intenta nuevamente.");
         }
         finally
         {
-            // Restaurar bot�n
+            // Restaurar botón
             VerifyButton.Text = "Verificar";
-            CheckCodeCompletion();
+            VerifyButton.IsEnabled = !string.IsNullOrWhiteSpace(VerificationCodeEntry.Text) &&
+                                      VerificationCodeEntry.Text.Length == 6;
         }
     }
 
     private async void OnResendCodeTapped(object sender, EventArgs e)
     {
+        if (!_canResend)
+        {
+            await DisplayAlert("Espera", $"Puedes reenviar el código en {_timerSeconds} segundos", "OK");
+            return;
+        }
+
         try
         {
-            await DisplayAlert("C�digo reenviado", $"Se ha enviado un nuevo c�digo de verificaci�n a {_userEmail}", "OK");
+            System.Diagnostics.Debug.WriteLine($"📤 Reenviando código a {_userEmail}");
 
-            // Reiniciar el timer
-            StartResendTimer();
+            // Aquí llamarías al endpoint para reenviar código
+            // Por ahora, simular el reenvío
+            await DisplayAlert("Código Reenviado",
+                "Se ha enviado un nuevo código de verificación a tu correo electrónico.",
+                "OK");
 
-            // Limpiar el c�digo actual
-            ClearCode();
+            // Iniciar timer de reenvío
+            IniciarTimerReenvio();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error al reenviar c�digo: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Error reenviando código: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo reenviar el código. Intenta nuevamente.", "OK");
         }
     }
 
     private async void OnChangeEmailTapped(object sender, EventArgs e)
     {
-        // Regresar al registro para cambiar el email
-        await Navigation.PopAsync();
+        try
+        {
+            string newEmail = await DisplayPromptAsync(
+                "Cambiar Email",
+                "Ingresa tu nuevo correo electrónico:",
+                placeholder: "correo@ejemplo.com",
+                keyboard: Keyboard.Email);
+
+            if (!string.IsNullOrWhiteSpace(newEmail))
+            {
+                // Validar formato de email
+                if (IsValidEmail(newEmail.Trim()))
+                {
+                    // Navegar a nueva página de verificación con el nuevo email
+                    await Navigation.PushAsync(new VerificationPage(newEmail.Trim().ToLower()));
+                    Navigation.RemovePage(this);
+                }
+                else
+                {
+                    await DisplayAlert("Email Inválido", "Por favor ingresa un email válido", "OK");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error cambiando email: {ex.Message}");
+            await DisplayAlert("Error", "Error al cambiar email", "OK");
+        }
     }
 
     #endregion
 
-    #region Helpers
+    #region Métodos auxiliares
 
-    private void ShowError(string message)
+    private void MostrarError(string mensaje)
     {
-        ErrorLabel.Text = message;
+        ErrorLabel.Text = mensaje;
         ErrorLabel.IsVisible = true;
+        System.Diagnostics.Debug.WriteLine($"❌ Error mostrado: {mensaje}");
+    }
+
+    private void IniciarTimerReenvio()
+    {
+        _canResend = false;
+        _timerSeconds = 60;
+
+        ResendLabel.IsVisible = false;
+        TimerLabel.IsVisible = true;
+        TimerLabel.Text = $"Puedes reenviar en {_timerSeconds} segundos";
+
+        // Timer para countdown
+        Device.StartTimer(TimeSpan.FromSeconds(1), () =>
+        {
+            _timerSeconds--;
+
+            if (_timerSeconds > 0)
+            {
+                TimerLabel.Text = $"Puedes reenviar en {_timerSeconds} segundos";
+                return true; // Continuar timer
+            }
+            else
+            {
+                // Timer terminado
+                _canResend = true;
+                TimerLabel.IsVisible = false;
+                ResendLabel.IsVisible = true;
+                return false; // Detener timer
+            }
+        });
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task NavigateToLogin()
+    {
+        try
+        {
+            // Navegar al login y limpiar el stack de navegación
+            await Navigation.PushAsync(new LoginPage());
+
+            // Remover páginas anteriores del stack
+            var pagesToRemove = Navigation.NavigationStack.Take(Navigation.NavigationStack.Count - 1).ToList();
+            foreach (var page in pagesToRemove)
+            {
+                Navigation.RemovePage(page);
+            }
+
+            System.Diagnostics.Debug.WriteLine("🚀 Navegación al login completada");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error navegando al login: {ex.Message}");
+
+            // Fallback: reemplazar página principal
+            Application.Current.MainPage = new AppShell();
+        }
     }
 
     #endregion
 
-    #region Cleanup
+    #region Lifecycle
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Enfocar en el campo de entrada al aparecer
+        VerificationCodeEntry.Focus();
+
+        System.Diagnostics.Debug.WriteLine($"👁️ VerificationPage apareció para {_userEmail}");
+    }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _resendTimer?.Stop();
-        _resendTimer?.Dispose();
+
+        // Cleanup
         _apiService?.Dispose();
+
+        System.Diagnostics.Debug.WriteLine("👋 VerificationPage desapareció");
     }
 
     #endregion

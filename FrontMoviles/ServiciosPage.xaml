@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FrontMoviles.ServiciosPage"
+             Title="Servicios"
+             BackgroundColor="White"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="#4A7C59" Padding="20,50,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Botón regresar -->
+            <Button Grid.Column="0" 
+                    Text="←"
+                    FontSize="24"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnBackClicked" />
+
+            <!-- Título -->
+            <Label Grid.Column="1" 
+                   Text="Todos los Servicios"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <!-- Botón filtros -->
+            <Button Grid.Column="2" 
+                    Text="🔍"
+                    FontSize="18"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnFiltrosClicked" />
+        </Grid>
+
+        <!-- Loading indicator -->
+        <Grid Grid.Row="1" x:Name="LoadingGrid" IsVisible="True" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20">
+                <ActivityIndicator IsRunning="True" Color="#4A7C59" />
+                <Label Text="Cargando servicios..." 
+                       FontSize="16"
+                       TextColor="Gray"
+                       HorizontalOptions="Center" />
+            </StackLayout>
+        </Grid>
+
+        <!-- Contenido -->
+        <RefreshView Grid.Row="1" x:Name="ContentRefreshView" IsVisible="False" Refreshing="OnRefreshing">
+            <ScrollView>
+                <StackLayout Padding="20" Spacing="20">
+
+                    <!-- Filtros rápidos -->
+                    <Frame BackgroundColor="#F8F9FA" CornerRadius="10" HasShadow="False" Padding="15">
+                        <StackLayout Spacing="10">
+                            <Label Text="Filtros rápidos" 
+                                   FontSize="16" 
+                                   FontAttributes="Bold"
+                                   TextColor="#4A7C59" />
+
+                            <ScrollView Orientation="Horizontal">
+                                <StackLayout Orientation="Horizontal" Spacing="10">
+                                    <Button Text="Todos" 
+                                            x:Name="TodosButton"
+                                            BackgroundColor="#4A7C59"
+                                            TextColor="White"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="Todos" />
+
+                                    <Button Text="Educación" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="Educación" />
+
+                                    <Button Text="Tecnología" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="Tecnología" />
+
+                                    <Button Text="Hogar" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="Hogar" />
+                                </StackLayout>
+                            </ScrollView>
+                        </StackLayout>
+                    </Frame>
+
+                    <!-- Lista de servicios -->
+                    <StackLayout x:Name="ServiciosContainer" Spacing="15">
+                        <!-- Los servicios se cargarán dinámicamente -->
+                    </StackLayout>
+
+                    <!-- Mensaje cuando no hay servicios -->
+                    <StackLayout x:Name="NoServiciosContainer" IsVisible="False" 
+                                 HorizontalOptions="Center" VerticalOptions="Center" 
+                                 Spacing="20" Padding="40">
+                        <Label Text="📋"
+                               FontSize="60"
+                               HorizontalOptions="Center" />
+                        <Label Text="No hay servicios disponibles"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Gray"
+                               HorizontalOptions="Center" />
+                        <Label Text="¡Sé el primero en publicar un servicio!"
+                               FontSize="14"
+                               TextColor="Gray"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center" />
+                        <Button Text="Publicar Servicio"
+                                BackgroundColor="#4A7C59"
+                                TextColor="White"
+                                CornerRadius="20"
+                                Padding="30,10"
+                                Clicked="OnPublicarServicioClicked" />
+                    </StackLayout>
+
+                    <!-- Espacio adicional -->
+                    <BoxView HeightRequest="80" BackgroundColor="Transparent" />
+                </StackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- Error view -->
+        <Grid Grid.Row="1" x:Name="ErrorGrid" IsVisible="False" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20" Padding="40">
+                <Label Text="😞"
+                       FontSize="60"
+                       HorizontalOptions="Center" />
+                <Label x:Name="ErrorMessageLabel"
+                       Text="No se pudieron cargar los servicios"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="Gray"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <Button Text="Reintentar"
+                        BackgroundColor="#4A7C59"
+                        TextColor="White"
+                        CornerRadius="20"
+                        Padding="30,10"
+                        Clicked="OnReintentarClicked" />
+            </StackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

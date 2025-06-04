@@ -67,6 +67,9 @@
 		<Compile Update="InicioPage.xaml.cs">
 			<DependentUpon>InicioPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="ServiciosPage.xaml.cs">
+		  <DependentUpon>ServiciosPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="RegisterPage.xaml.cs">
 			<DependentUpon>RegisterPage.xaml</DependentUpon>
 		</Compile>
@@ -81,6 +84,9 @@
 		</MauiXaml>
 		<MauiXaml Update="InicioPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="ServiciosPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="PerfilPage.xaml">
 			<Generator>MSBuild:Compile</Generator>

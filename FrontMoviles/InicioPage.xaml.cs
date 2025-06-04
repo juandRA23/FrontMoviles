@@ -1,13 +1,17 @@
 ﻿using FrontMoviles.Servicios;
+using FrontMoviles.Modelos;
 using System.ComponentModel;
 
 namespace FrontMoviles;
 
 public partial class InicioPage : ContentPage
 {
+    private readonly ApiService _apiService;
+
     public InicioPage()
     {
         InitializeComponent();
+        _apiService = new ApiService();
         CargarDatosIniciales();
         CargarServiciosRecientes();
     }
@@ -25,9 +29,259 @@ public partial class InicioPage : ContentPage
         }
     }
 
-    private void CargarServiciosRecientes()
+    private async void CargarServiciosRecientes()
     {
-        // Por ahora cargar datos mock - después conectar con el API
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🔄 Cargando servicios recientes en inicio...");
+
+            // Llamar a la API para obtener servicios
+            var response = await _apiService.ObtenerServiciosAsync();
+
+            if (response.Resultado && response.Servicios?.Any() == true)
+            {
+                // Tomar solo los primeros 3 servicios más recientes
+                var serviciosRecientes = response.Servicios
+                    .OrderByDescending(s => s.CreatedAt)
+                    .Take(3)
+                    .ToList();
+
+                System.Diagnostics.Debug.WriteLine($"✅ Servicios recientes obtenidos: {serviciosRecientes.Count}");
+
+                // Limpiar contenedor y cargar servicios reales
+                ServiciosContainer.Children.Clear();
+
+                foreach (var servicio in serviciosRecientes)
+                {
+                    var servicioFrame = CrearServicioUIReal(servicio);
+                    ServiciosContainer.Children.Add(servicioFrame);
+                }
+
+                // Si no hay servicios, mostrar mensaje
+                if (!serviciosRecientes.Any())
+                {
+                    ServiciosContainer.Children.Add(new Frame
+                    {
+                        BackgroundColor = Color.FromArgb("#F8F9FA"),
+                        CornerRadius = 10,
+                        HasShadow = false,
+                        Padding = 20,
+                        Content = new StackLayout
+                        {
+                            HorizontalOptions = LayoutOptions.Center,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "📋",
+                                    FontSize = 40,
+                                    HorizontalOptions = LayoutOptions.Center
+                                },
+                                new Label
+                                {
+                                    Text = "No hay servicios disponibles",
+                                    FontSize = 16,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Colors.Gray,
+                                    HorizontalOptions = LayoutOptions.Center
+                                },
+                                new Label
+                                {
+                                    Text = "¡Sé el primero en publicar un servicio!",
+                                    FontSize = 14,
+                                    TextColor = Colors.Gray,
+                                    HorizontalOptions = LayoutOptions.Center,
+                                    HorizontalTextAlignment = TextAlignment.Center
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            else
+            {
+                // En caso de error, mostrar servicios mock como respaldo
+                System.Diagnostics.Debug.WriteLine("⚠️ Error obteniendo servicios, usando datos mock");
+                CargarServiciosMock();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Excepción cargando servicios: {ex.Message}");
+            // En caso de excepción, cargar servicios mock
+            CargarServiciosMock();
+        }
+    }
+
+    private Frame CrearServicioUIReal(Servicio servicio)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            CornerRadius = 10,
+            HasShadow = true,
+            Padding = 15,
+            Margin = new Thickness(0, 5)
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition { Width = new GridLength(60) },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = new GridLength(60) }
+            }
+        };
+
+        // Icono del servicio basado en categoría
+        var iconFrame = new Frame
+        {
+            BackgroundColor = ObtenerColorCategoria(servicio.Categoria?.Nombre),
+            CornerRadius = 8,
+            WidthRequest = 50,
+            HeightRequest = 50,
+            HasShadow = false,
+            Padding = 0
+        };
+
+        var iconLabel = new Label
+        {
+            Text = ObtenerIconoCategoria(servicio.Categoria?.Nombre),
+            FontSize = 24,
+            TextColor = Colors.White,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        iconFrame.Content = iconLabel;
+        grid.SetColumn(iconFrame, 0);
+        grid.Children.Add(iconFrame);
+
+        // Información del servicio
+        var infoStack = new StackLayout
+        {
+            Spacing = 3,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(15, 0, 0, 0)
+        };
+
+        // Categoría
+        infoStack.Children.Add(new Label
+        {
+            Text = servicio.Categoria?.Nombre?.ToUpper() ?? "SERVICIO",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#4A90A4"),
+            FontAttributes = FontAttributes.Bold
+        });
+
+        // Título
+        infoStack.Children.Add(new Label
+        {
+            Text = servicio.Titulo,
+            FontSize = 16,
+            TextColor = Colors.Black,
+            FontAttributes = FontAttributes.Bold,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+
+        // Descripción corta
+        var descripcionCorta = servicio.Descripcion?.Length > 40
+            ? $"{servicio.Descripcion.Substring(0, 40)}..."
+            : servicio.Descripcion;
+
+        infoStack.Children.Add(new Label
+        {
+            Text = descripcionCorta,
+            FontSize = 14,
+            TextColor = Colors.Gray,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+
+        // Precio
+        infoStack.Children.Add(new Label
+        {
+            Text = $"₡{servicio.Precio:N0}/hr",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#4A90A4"),
+            FontAttributes = FontAttributes.Bold
+        });
+
+        grid.SetColumn(infoStack, 1);
+        grid.Children.Add(infoStack);
+
+        // Calificación (simulada por ahora)
+        var ratingStack = new StackLayout
+        {
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var ratingLabel = new StackLayout
+        {
+            Orientation = StackOrientation.Horizontal,
+            Spacing = 3
+        };
+
+        ratingLabel.Children.Add(new Label
+        {
+            Text = "★",
+            FontSize = 16,
+            TextColor = Color.FromArgb("#FFD700")
+        });
+
+        ratingLabel.Children.Add(new Label
+        {
+            Text = "4.8", // Valor simulado
+            FontSize = 14,
+            TextColor = Colors.Black,
+            FontAttributes = FontAttributes.Bold
+        });
+
+        ratingStack.Children.Add(ratingLabel);
+        grid.SetColumn(ratingStack, 2);
+        grid.Children.Add(ratingStack);
+
+        frame.Content = grid;
+
+        // Agregar gesto de tap
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (s, e) => OnServicioRealClicked(servicio);
+        frame.GestureRecognizers.Add(tapGesture);
+
+        return frame;
+    }
+
+    private Color ObtenerColorCategoria(string categoria)
+    {
+        return categoria?.ToLower() switch
+        {
+            "educación" or "educacion" => Color.FromArgb("#6C7CE7"),
+            "tecnología" or "tecnologia" => Color.FromArgb("#34C759"),
+            "hogar" => Color.FromArgb("#FF9500"),
+            "diseño" or "diseno" => Color.FromArgb("#FF2D92"),
+            "salud" => Color.FromArgb("#00C7BE"),
+            _ => Color.FromArgb("#A8D5BA")
+        };
+    }
+
+    private string ObtenerIconoCategoria(string categoria)
+    {
+        return categoria?.ToLower() switch
+        {
+            "educación" or "educacion" => "📚",
+            "tecnología" or "tecnologia" => "💻",
+            "hogar" => "🏠",
+            "diseño" or "diseno" => "🎨",
+            "salud" => "⚕️",
+            _ => "🔧"
+        };
+    }
+
+    private void CargarServiciosMock()
+    {
+        // Datos mock como respaldo
         var serviciosMock = new List<ServicioMock>
         {
             new ServicioMock
@@ -59,15 +313,16 @@ public partial class InicioPage : ContentPage
             }
         };
 
-        // Crear UI para cada servicio
+        // Crear UI para cada servicio mock
+        ServiciosContainer.Children.Clear();
         foreach (var servicio in serviciosMock)
         {
-            var servicioFrame = CrearServicioUI(servicio);
+            var servicioFrame = CrearServicioMockUI(servicio);
             ServiciosContainer.Children.Add(servicioFrame);
         }
     }
 
-    private Frame CrearServicioUI(ServicioMock servicio)
+    private Frame CrearServicioMockUI(ServicioMock servicio)
     {
         var frame = new Frame
         {
@@ -190,7 +445,7 @@ public partial class InicioPage : ContentPage
 
         // Agregar gesto de tap
         var tapGesture = new TapGestureRecognizer();
-        tapGesture.Tapped += (s, e) => OnServicioClicked(servicio);
+        tapGesture.Tapped += (s, e) => OnServicioMockClicked(servicio);
         frame.GestureRecognizers.Add(tapGesture);
 
         return frame;
@@ -346,15 +601,39 @@ public partial class InicioPage : ContentPage
 
     #region Eventos de Servicios
 
-    private async void OnServicioClicked(ServicioMock servicio)
+    private async void OnServicioRealClicked(Servicio servicio)
     {
-        await DisplayAlert("Servicio", $"Seleccionaste: {servicio.Titulo}", "OK");
-        // Aquí navegarías a la página de detalle del servicio
+        try
+        {
+            var info = $"Título: {servicio.Titulo}\n\n";
+            info += $"Descripción: {servicio.Descripcion}\n\n";
+            info += $"Precio: ₡{servicio.Precio:N0} por hora\n\n";
+
+            if (servicio.Usuario != null)
+            {
+                info += $"Proveedor: {servicio.Usuario.Nombre} {servicio.Usuario.Apellido1}";
+            }
+
+            await DisplayAlert("Detalle del Servicio", info, "OK");
+            System.Diagnostics.Debug.WriteLine($"👆 Servicio real seleccionado: {servicio.Titulo}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error mostrando servicio real: {ex.Message}");
+            await DisplayAlert("Error", "Error al mostrar detalles", "OK");
+        }
+    }
+
+    private async void OnServicioMockClicked(ServicioMock servicio)
+    {
+        await DisplayAlert("Servicio", $"Seleccionaste: {servicio.Titulo}\n(Datos de ejemplo)", "OK");
+        System.Diagnostics.Debug.WriteLine($"👆 Servicio mock seleccionado: {servicio.Titulo}");
     }
 
     private async void OnVerTodosClicked(object sender, EventArgs e)
     {
-        // Cambiar a la pestaña de servicios
+        // Navegar a la página de servicios
+        await Navigation.PushAsync(new ServiciosPage());
         CambiarPestana("Servicios");
     }
 
@@ -370,9 +649,8 @@ public partial class InicioPage : ContentPage
 
     private async void OnServiciosClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("Servicios", "Navegando a lista de servicios...", "OK");
+        await Navigation.PushAsync(new ServiciosPage());
         CambiarPestana("Servicios");
-        // Aquí navegarías a la página de servicios o cambiarías el contenido
     }
 
     private async void OnPublicarClicked(object sender, EventArgs e)
@@ -481,12 +759,13 @@ public partial class InicioPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _apiService?.Dispose();
     }
 
     #endregion
 }
 
-#region Modelos Mock
+#region Modelos Mock (mantener para compatibilidad)
 public class ServicioMock
 {
     public string Titulo { get; set; }

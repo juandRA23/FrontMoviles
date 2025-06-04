@@ -475,5 +475,41 @@ namespace FrontMoviles.Modelos
 
     #endregion
 
+    #region Modelos para Listar Servicios
 
+    public class ResListarServicios
+    {
+        [JsonPropertyName("Servicios")]
+        public List<Servicio> Servicios { get; set; } = new List<Servicio>();
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
+
+    #region Método para Reenvío de Código de Verificación
+
+    public class ReqReenviarCodigo
+    {
+        [JsonPropertyName("Correo")]
+        public string Correo { get; set; }
+    }
+
+    public class ResReenviarCodigo
+    {
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+
+        [JsonPropertyName("mensaje")]
+        public string Mensaje { get; set; }
+    }
+
+    #endregion
 }

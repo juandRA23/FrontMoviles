@@ -14,7 +14,7 @@ namespace FrontMoviles.Servicios
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        private const string BASE_URL = "http://localhost:56387/"; // Cambia por tu URL base //"http://10.0.2.2:56387/";
+        private const string BASE_URL = "http://localhost:56387/"; // Cambia por tu URL base //"";"http://10.0.2.2:56387/"
 
 
         public ApiService()
@@ -922,6 +922,85 @@ namespace FrontMoviles.Servicios
         public void Dispose()
         {
             _httpClient?.Dispose();
+        }
+
+        #endregion
+
+        #region Métodos para Listar Servicios
+
+        // Método para obtener todos los servicios
+        public async Task<ResListarServicios> ObtenerServiciosAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔍 Obteniendo lista de servicios...");
+
+                // Hacer la petición GET
+                var response = await _httpClient.GetAsync("api/servicio/listar");
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent.Substring(0, Math.Min(500, responseContent.Length))}...");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarServicios>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateListarServiciosErrorResponse(-4, "Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"✅ Servicios obtenidos: {result.Servicios?.Count ?? 0}");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateListarServiciosErrorResponse(-5, $"Error al procesar respuesta: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP: {response.StatusCode}");
+                    return CreateListarServiciosErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateListarServiciosErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateListarServiciosErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateListarServiciosErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResListarServicios CreateListarServiciosErrorResponse(int errorCode, string message)
+        {
+            return new ResListarServicios
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Servicios = new List<Servicio>()
+            };
         }
 
         #endregion
