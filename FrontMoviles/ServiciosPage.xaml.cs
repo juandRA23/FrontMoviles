@@ -1,4 +1,5 @@
-﻿using FrontMoviles.Servicios;
+﻿// FrontMoviles/ServiciosPage.xaml.cs - CÓDIGO COMPLETO
+using FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
 using System.Globalization;
 
@@ -230,7 +231,7 @@ public partial class ServiciosPage : ContentPage
 
         frame.Content = grid;
 
-        // Agregar gesto de tap
+        // ✅ AGREGAR GESTO DE TAP - NAVEGACIÓN A DETALLE
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += (s, e) => OnServicioClicked(servicio);
         frame.GestureRecognizers.Add(tapGesture);
@@ -385,45 +386,30 @@ public partial class ServiciosPage : ContentPage
 
     private void ActualizarBotonesFiltro(Button botonSeleccionado)
     {
-        // Buscar todos los botones de filtro y resetear su estilo
-        var filtrosFrame = this.FindByName<Frame>("filtrosFrame");
-        // Implementar lógica para cambiar estilos de botones
+        // Aquí podrías implementar lógica para cambiar estilos de botones
         // Por simplicidad, se mantiene el estilo actual
     }
 
     #endregion
 
-    #region Eventos de servicios
+    #region Eventos de servicios - ✅ NAVEGACIÓN A DETALLE CORREGIDA
 
     private async void OnServicioClicked(Servicio servicio)
     {
         try
         {
-            // Crear información detallada del servicio
-            var info = $"Título: {servicio.Titulo}\n\n";
-            info += $"Descripción: {servicio.Descripcion}\n\n";
-            info += $"Precio: ₡{servicio.Precio:N0} por hora\n\n";
-            info += $"Disponibilidad: {servicio.Disponibilidad}\n\n";
+            System.Diagnostics.Debug.WriteLine($"👆 NAVEGANDO A DETALLE: {servicio.Titulo} (ID: {servicio.ServicioId})");
 
-            if (servicio.Usuario != null)
-            {
-                info += $"Proveedor: {servicio.Usuario.Nombre} {servicio.Usuario.Apellido1}\n\n";
-            }
+            // ✅ NAVEGAR A LA PÁGINA DE DETALLE DEL SERVICIO
+            await Navigation.PushAsync(new DetalleServicioPage(servicio));
 
-            if (servicio.SubCategorias?.Any() == true)
-            {
-                info += $"Especialidades: {string.Join(", ", servicio.SubCategorias.Select(sc => sc.Nombre))}";
-            }
-
-            await DisplayAlert($"Servicio: {servicio.Titulo}", info, "Cerrar");
-
-            // Aquí podrías navegar a una página de detalle del servicio
-            System.Diagnostics.Debug.WriteLine($"👆 Servicio seleccionado: {servicio.Titulo} (ID: {servicio.ServicioId})");
+            System.Diagnostics.Debug.WriteLine("✅ Navegación exitosa a DetalleServicioPage");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error mostrando detalle: {ex.Message}");
-            await DisplayAlert("Error", "Error al mostrar detalles del servicio", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ ERROR navegando a detalle: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ StackTrace: {ex.StackTrace}");
+            await DisplayAlert("Error", $"Error al abrir detalle del servicio: {ex.Message}", "OK");
         }
     }
 

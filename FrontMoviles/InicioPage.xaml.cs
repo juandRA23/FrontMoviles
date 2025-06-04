@@ -599,34 +599,36 @@ public partial class InicioPage : ContentPage
 
     #endregion
 
+    // Actualizar los métodos de clic en servicios en InicioPage.xaml.cs
+
     #region Eventos de Servicios
 
     private async void OnServicioRealClicked(Servicio servicio)
     {
         try
         {
-            var info = $"Título: {servicio.Titulo}\n\n";
-            info += $"Descripción: {servicio.Descripcion}\n\n";
-            info += $"Precio: ₡{servicio.Precio:N0} por hora\n\n";
-
-            if (servicio.Usuario != null)
-            {
-                info += $"Proveedor: {servicio.Usuario.Nombre} {servicio.Usuario.Apellido1}";
-            }
-
-            await DisplayAlert("Detalle del Servicio", info, "OK");
             System.Diagnostics.Debug.WriteLine($"👆 Servicio real seleccionado: {servicio.Titulo}");
+
+            // Navegar a la página de detalle del servicio
+            await Navigation.PushAsync(new DetalleServicioPage(servicio));
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error mostrando servicio real: {ex.Message}");
-            await DisplayAlert("Error", "Error al mostrar detalles", "OK");
+            System.Diagnostics.Debug.WriteLine($"❌ Error navegando a detalle desde inicio: {ex.Message}");
+            await DisplayAlert("Error", "Error al abrir detalle del servicio", "OK");
         }
     }
 
     private async void OnServicioMockClicked(ServicioMock servicio)
     {
-        await DisplayAlert("Servicio", $"Seleccionaste: {servicio.Titulo}\n(Datos de ejemplo)", "OK");
+        // Para servicios mock, mostrar información básica
+        var info = $"Título: {servicio.Titulo}\n\n";
+        info += $"Descripción: {servicio.Descripcion}\n\n";
+        info += $"Precio: {servicio.Precio}\n\n";
+        info += $"Calificación: {servicio.Calificacion}\n\n";
+        info += "(Datos de ejemplo - Registra servicios reales para ver funcionalidad completa)";
+
+        await DisplayAlert("Servicio de Ejemplo", info, "OK");
         System.Diagnostics.Debug.WriteLine($"👆 Servicio mock seleccionado: {servicio.Titulo}");
     }
 
