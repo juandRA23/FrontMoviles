@@ -1,7 +1,6 @@
-﻿// FrontMoviles/DetalleServicioPage.xaml.cs - CÓDIGO COMPLETO FINAL
+﻿// FrontMoviles/DetalleServicioPage.xaml.cs - VERSIÓN SIMPLE COMPLETA
 using FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
-using System.Globalization;
 
 namespace FrontMoviles;
 
@@ -44,7 +43,7 @@ public partial class DetalleServicioPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error cargando detalle: {ex.Message}");
-            MostrarError($"Error al cargar información: {ex.Message}");
+            DisplayAlert("Error", $"Error al cargar información: {ex.Message}", "OK");
         }
     }
 
@@ -205,92 +204,11 @@ public partial class DetalleServicioPage : ContentPage
                 _ => _servicio.CreatedAt.ToString("dd/MM/yyyy")
             };
 
-            // Cargar información de contacto
-            CargarInformacionContacto();
-
             System.Diagnostics.Debug.WriteLine("✅ Información adicional cargada");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error en información adicional: {ex.Message}");
-        }
-    }
-
-    private void CargarInformacionContacto()
-    {
-        try
-        {
-            if (_servicio.Usuario != null)
-            {
-                // Mostrar email si existe
-                if (!string.IsNullOrEmpty(_servicio.Usuario.Correo))
-                {
-                    EmailProveedorLabel.Text = _servicio.Usuario.Correo;
-                    EmailGrid.IsVisible = true;
-                    System.Diagnostics.Debug.WriteLine($"📧 Email configurado: {_servicio.Usuario.Correo}");
-                }
-                else
-                {
-                    EmailGrid.IsVisible = false;
-                    System.Diagnostics.Debug.WriteLine("📧 No hay email disponible");
-                }
-
-                // Mostrar teléfono si existe
-                if (!string.IsNullOrEmpty(_servicio.Usuario.Telefono))
-                {
-                    TelefonoProveedorLabel.Text = FormatearTelefono(_servicio.Usuario.Telefono);
-                    TelefonoGrid.IsVisible = true;
-                    System.Diagnostics.Debug.WriteLine($"📱 Teléfono configurado: {_servicio.Usuario.Telefono}");
-                }
-                else
-                {
-                    TelefonoGrid.IsVisible = false;
-                    System.Diagnostics.Debug.WriteLine("📱 No hay teléfono disponible");
-                }
-            }
-            else
-            {
-                // Ocultar ambas secciones si no hay usuario
-                EmailGrid.IsVisible = false;
-                TelefonoGrid.IsVisible = false;
-                System.Diagnostics.Debug.WriteLine("❌ No hay información de usuario");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error cargando información de contacto: {ex.Message}");
-            EmailGrid.IsVisible = false;
-            TelefonoGrid.IsVisible = false;
-        }
-    }
-
-    private string FormatearTelefono(string telefono)
-    {
-        if (string.IsNullOrEmpty(telefono))
-            return "No disponible";
-
-        try
-        {
-            // Remover espacios y caracteres especiales
-            var numeroLimpio = telefono.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "").Replace("+", "");
-
-            // Si es un número de Costa Rica (8 dígitos que empiezan con 6, 7 u 8)
-            if (numeroLimpio.Length == 8 && (numeroLimpio.StartsWith("6") || numeroLimpio.StartsWith("7") || numeroLimpio.StartsWith("8")))
-            {
-                return $"+506 {numeroLimpio.Substring(0, 4)}-{numeroLimpio.Substring(4)}";
-            }
-
-            // Si ya tiene código de país
-            if (numeroLimpio.StartsWith("506") && numeroLimpio.Length == 11)
-            {
-                return $"+506 {numeroLimpio.Substring(3, 4)}-{numeroLimpio.Substring(7)}";
-            }
-
-            return telefono; // Devolver como está si no se puede formatear
-        }
-        catch
-        {
-            return telefono; // En caso de error, devolver original
         }
     }
 
@@ -324,21 +242,6 @@ public partial class DetalleServicioPage : ContentPage
             IconoLabel.Text = "🔧";
             IconoFrame.BackgroundColor = Color.FromArgb("#A8D5BA");
         }
-    }
-
-    private void MostrarEstado(string estado)
-    {
-        LoadingGrid.IsVisible = estado == "loading";
-        ContentScrollView.IsVisible = estado == "content";
-        ErrorGrid.IsVisible = estado == "error";
-
-        System.Diagnostics.Debug.WriteLine($"🔄 Estado UI: {estado}");
-    }
-
-    private void MostrarError(string mensaje)
-    {
-        ErrorMessageLabel.Text = mensaje;
-        MostrarEstado("error");
     }
 
     #endregion
@@ -375,17 +278,42 @@ public partial class DetalleServicioPage : ContentPage
         }
     }
 
-    private async void OnReintentarClicked(object sender, EventArgs e)
+    private async void OnVerPerfilClicked(object sender, EventArgs e)
     {
-        MostrarEstado("content");
-        CargarDatosServicio();
+        try
+        {
+            if (_servicio.Usuario != null)
+            {
+                var nombreCompleto = $"{_servicio.Usuario.Nombre} {_servicio.Usuario.Apellido1}";
+
+                var info = $"Nombre: {nombreCompleto}\n\n";
+                info += $"Email: {_servicio.Usuario.Correo}\n\n";
+                info += $"Teléfono: {_servicio.Usuario.Telefono}\n\n";
+                info += $"Ubicación: {UbicacionProveedorLabel.Text}\n\n";
+                info += $"Miembro desde: {_servicio.Usuario.CreatedAt:yyyy}\n\n";
+                info += $"Cuenta verificada: {(_servicio.Usuario.Verificacion > 0 ? "Sí" : "No")}";
+
+                await DisplayAlert($"Perfil de {nombreCompleto}", info, "Cerrar");
+
+                System.Diagnostics.Debug.WriteLine($"👤 Perfil visualizado: {nombreCompleto}");
+            }
+            else
+            {
+                await DisplayAlert("Error", "Información del proveedor no disponible", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error mostrando perfil: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo mostrar el perfil", "OK");
+        }
     }
 
     #endregion
 
-    #region Eventos de contacto directo
+    #region Eventos de contacto
 
-    private async void OnEmailDirectoClicked(object sender, EventArgs e)
+    private async void OnWhatsAppClicked(object sender, EventArgs e)
     {
         try
         {
@@ -396,38 +324,17 @@ public partial class DetalleServicioPage : ContentPage
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine("📧 Email directo clickeado");
-            await ContactarEmail();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error en email directo: {ex.Message}");
-            await DisplayAlert("Error", "No se pudo abrir el email", "OK");
-        }
-    }
-
-    private async void OnWhatsAppDirectoClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            if (!SessionManager.EstaLogueado())
-            {
-                await DisplayAlert("Sesión requerida",
-                    "Debes iniciar sesión para contactar al proveedor", "OK");
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine("💬 WhatsApp directo clickeado");
+            System.Diagnostics.Debug.WriteLine("💬 WhatsApp clickeado");
             await ContactarWhatsApp();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error en WhatsApp directo: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Error en WhatsApp: {ex.Message}");
             await DisplayAlert("Error", "No se pudo abrir WhatsApp", "OK");
         }
     }
 
-    private async void OnLlamadaDirectaClicked(object sender, EventArgs e)
+    private async void OnEmailClicked(object sender, EventArgs e)
     {
         try
         {
@@ -438,74 +345,64 @@ public partial class DetalleServicioPage : ContentPage
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine("📞 Llamada directa clickeada");
+            System.Diagnostics.Debug.WriteLine("📧 Email clickeado");
+            await ContactarEmail();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error en email: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo abrir el email", "OK");
+        }
+    }
+
+    private async void OnLlamadaClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (!SessionManager.EstaLogueado())
+            {
+                await DisplayAlert("Sesión requerida",
+                    "Debes iniciar sesión para contactar al proveedor", "OK");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("📞 Llamada clickeada");
             await ContactarTelefono();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error en llamada directa: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Error en llamada: {ex.Message}");
             await DisplayAlert("Error", "No se pudo iniciar la llamada", "OK");
+        }
+    }
+
+    private async void OnChatClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (!SessionManager.EstaLogueado())
+            {
+                await DisplayAlert("Sesión requerida",
+                    "Debes iniciar sesión para usar el chat interno", "OK");
+                return;
+            }
+
+            await DisplayAlert("Chat en ServiFlex",
+                "La funcionalidad de chat interno estará disponible próximamente. " +
+                "Por ahora puedes usar WhatsApp, email o llamada directa.", "OK");
+
+            System.Diagnostics.Debug.WriteLine("💭 Chat interno solicitado");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error en chat interno: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo abrir el chat", "OK");
         }
     }
 
     #endregion
 
     #region Eventos de acción
-
-    private async void OnContactarClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            if (!SessionManager.EstaLogueado())
-            {
-                await DisplayAlert("Sesión requerida",
-                    "Debes iniciar sesión para contactar al proveedor", "OK");
-                return;
-            }
-
-            // Información del proveedor
-            var nombreProveedor = _servicio.Usuario != null
-                ? $"{_servicio.Usuario.Nombre} {_servicio.Usuario.Apellido1}"
-                : "Proveedor";
-
-            var opciones = new string[]
-            {
-                "📱 WhatsApp",
-                "📧 Email",
-                "☎️ Llamada",
-                "💬 Chat en app"
-            };
-
-            var seleccion = await DisplayActionSheet(
-                $"¿Cómo deseas contactar a {nombreProveedor}?",
-                "Cancelar",
-                null,
-                opciones);
-
-            switch (seleccion)
-            {
-                case "📱 WhatsApp":
-                    await ContactarWhatsApp();
-                    break;
-                case "📧 Email":
-                    await ContactarEmail();
-                    break;
-                case "☎️ Llamada":
-                    await ContactarTelefono();
-                    break;
-                case "💬 Chat en app":
-                    await ContactarChatApp();
-                    break;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"📞 Contacto iniciado: {seleccion}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error contactando: {ex.Message}");
-            await DisplayAlert("Error", "No se pudo iniciar el contacto", "OK");
-        }
-    }
 
     private async void OnContratarClicked(object sender, EventArgs e)
     {
@@ -537,7 +434,6 @@ public partial class DetalleServicioPage : ContentPage
                     "Tu solicitud de contratación ha sido enviada. El proveedor se pondrá en contacto contigo pronto.",
                     "OK");
 
-                // Aquí implementarías la lógica real de contratación
                 System.Diagnostics.Debug.WriteLine($"🤝 Servicio contratado: {_servicio.Titulo}");
             }
         }
@@ -551,38 +447,6 @@ public partial class DetalleServicioPage : ContentPage
             // Restaurar botón
             ContratarButton.Text = "🤝 Contratar Servicio";
             ContratarButton.IsEnabled = true;
-        }
-    }
-
-    private async void OnVerPerfilClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            if (_servicio.Usuario != null)
-            {
-                var nombreCompleto = $"{_servicio.Usuario.Nombre} {_servicio.Usuario.Apellido1}";
-
-                var info = $"Nombre: {nombreCompleto}\n\n";
-                info += $"Email: {_servicio.Usuario.Correo}\n\n";
-                info += $"Teléfono: {_servicio.Usuario.Telefono}\n\n";
-                info += $"Ubicación: {UbicacionProveedorLabel.Text}\n\n";
-                info += $"Miembro desde: {_servicio.Usuario.CreatedAt:yyyy}\n\n";
-                info += $"Cuenta verificada: {(_servicio.Usuario.Verificacion > 0 ? "Sí" : "No")}";
-
-                await DisplayAlert($"Perfil de {nombreCompleto}", info, "Cerrar");
-
-                // Aquí podrías navegar a una página de perfil completa
-                System.Diagnostics.Debug.WriteLine($"👤 Perfil visualizado: {nombreCompleto}");
-            }
-            else
-            {
-                await DisplayAlert("Error", "Información del proveedor no disponible", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error mostrando perfil: {ex.Message}");
-            await DisplayAlert("Error", "No se pudo mostrar el perfil", "OK");
         }
     }
 
@@ -664,24 +528,6 @@ public partial class DetalleServicioPage : ContentPage
         }
     }
 
-    private async Task ContactarChatApp()
-    {
-        try
-        {
-            await DisplayAlert("Chat en App",
-                "Función de chat interno próximamente disponible.", "OK");
-
-            // Aquí implementarías navegación a una página de chat
-            // await Navigation.PushAsync(new ChatPage(_servicio.Usuario));
-
-            System.Diagnostics.Debug.WriteLine("💬 Chat en app solicitado");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error en chat: {ex.Message}");
-        }
-    }
-
     private string LimpiarTelefono(string telefono)
     {
         if (string.IsNullOrEmpty(telefono))
@@ -725,7 +571,7 @@ public partial class DetalleServicioPage : ContentPage
         {
             var userEmail = SessionManager.ObtenerEmailUsuario();
 
-            // Si es el mismo usuario que publicó el servicio, ocultar botón de contratar
+            // Si es el mismo usuario que publicó el servicio, modificar botón de contratar
             if (!string.IsNullOrEmpty(userEmail) &&
                 _servicio.Usuario?.Correo?.Equals(userEmail, StringComparison.OrdinalIgnoreCase) == true)
             {

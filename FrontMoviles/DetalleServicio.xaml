@@ -51,23 +51,12 @@
                     Clicked="OnCompartirClicked" />
         </Grid>
 
-        <!-- Loading indicator -->
-        <Grid Grid.Row="1" x:Name="LoadingGrid" IsVisible="False" BackgroundColor="White">
-            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20">
-                <ActivityIndicator IsRunning="True" Color="#4A7C59" />
-                <Label Text="Cargando información..." 
-                       FontSize="16"
-                       TextColor="Gray"
-                       HorizontalOptions="Center" />
-            </StackLayout>
-        </Grid>
-
         <!-- Contenido principal -->
-        <ScrollView Grid.Row="1" x:Name="ContentScrollView" IsVisible="True">
+        <ScrollView Grid.Row="1">
             <StackLayout Spacing="0">
 
                 <!-- Header del servicio -->
-                <Grid x:Name="HeaderServicio" BackgroundColor="#F8F9FA" Padding="20">
+                <Grid BackgroundColor="#F8F9FA" Padding="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="80" />
                         <ColumnDefinition Width="*" />
@@ -283,109 +272,8 @@
                         </Frame>
                     </StackLayout>
 
-                    <!-- Información de contacto mejorada -->
+                    <!-- Información del servicio -->
                     <StackLayout Spacing="15">
-                        <Label Text="Información de contacto" 
-                               FontSize="18" 
-                               FontAttributes="Bold"
-                               TextColor="Black" />
-
-                        <!-- Email del proveedor -->
-                        <Grid x:Name="EmailGrid" IsVisible="False">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Label Grid.Column="0"
-                                   Text="📧"
-                                   FontSize="20"
-                                   VerticalOptions="Center"
-                                   Margin="0,0,15,0" />
-
-                            <StackLayout Grid.Column="1" VerticalOptions="Center">
-                                <Label Text="Correo electrónico"
-                                       FontSize="12"
-                                       TextColor="Gray" />
-                                <Label x:Name="EmailProveedorLabel"
-                                       Text="correo@ejemplo.com"
-                                       FontSize="14"
-                                       TextColor="Black"
-                                       FontAttributes="Bold" />
-                            </StackLayout>
-
-                            <Button Grid.Column="2"
-                                    Text="✉️"
-                                    FontSize="16"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#4A7C59"
-                                    WidthRequest="40"
-                                    HeightRequest="40"
-                                    CornerRadius="20"
-                                    BorderColor="#4A7C59"
-                                    BorderWidth="1"
-                                    Clicked="OnEmailDirectoClicked" />
-                        </Grid>
-
-                        <!-- Teléfono del proveedor -->
-                        <Grid x:Name="TelefonoGrid" IsVisible="False">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Label Grid.Column="0"
-                                   Text="📱"
-                                   FontSize="20"
-                                   VerticalOptions="Center"
-                                   Margin="0,0,15,0" />
-
-                            <StackLayout Grid.Column="1" VerticalOptions="Center">
-                                <Label Text="Teléfono"
-                                       FontSize="12"
-                                       TextColor="Gray" />
-                                <Label x:Name="TelefonoProveedorLabel"
-                                       Text="+506 8888-8888"
-                                       FontSize="14"
-                                       TextColor="Black"
-                                       FontAttributes="Bold" />
-                            </StackLayout>
-
-                            <!-- Botón WhatsApp -->
-                            <Button Grid.Column="2"
-                                    Text="💬"
-                                    FontSize="16"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#25D366"
-                                    WidthRequest="40"
-                                    HeightRequest="40"
-                                    CornerRadius="20"
-                                    BorderColor="#25D366"
-                                    BorderWidth="1"
-                                    Margin="0,0,5,0"
-                                    Clicked="OnWhatsAppDirectoClicked" />
-
-                            <!-- Botón llamada -->
-                            <Button Grid.Column="3"
-                                    Text="📞"
-                                    FontSize="16"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#007AFF"
-                                    WidthRequest="40"
-                                    HeightRequest="40"
-                                    CornerRadius="20"
-                                    BorderColor="#007AFF"
-                                    BorderWidth="1"
-                                    Clicked="OnLlamadaDirectaClicked" />
-                        </Grid>
-
-                        <!-- Separador -->
-                        <BoxView HeightRequest="1" BackgroundColor="#E0E0E0" Margin="0,10" />
-
-                        <!-- Información del servicio -->
                         <Label Text="Información del servicio" 
                                FontSize="18" 
                                FontAttributes="Bold"
@@ -463,58 +351,117 @@
                         </StackLayout>
                     </StackLayout>
 
-                    <!-- Espacio adicional para el botón flotante -->
+                    <!-- OPCIONES DE CONTACTO - VERSIÓN SIMPLE -->
+                    <StackLayout Spacing="15">
+                        <Label Text="Opciones de contacto" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="Black" />
+
+                        <!-- Grid con 4 iconos -->
+                        <Grid ColumnSpacing="20" RowSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- WhatsApp -->
+                            <StackLayout Grid.Column="0" HorizontalOptions="Center">
+                                <Frame BackgroundColor="#25D366"
+                                       CornerRadius="30"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       HasShadow="True"
+                                       Padding="0">
+                                    <Button Text="💬"
+                                            FontSize="28"
+                                            BackgroundColor="Transparent"
+                                            TextColor="White"
+                                            Clicked="OnWhatsAppClicked" />
+                                </Frame>
+                                <Label Text="WhatsApp"
+                                       FontSize="12"
+                                       TextColor="Black"
+                                       HorizontalOptions="Center"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+
+                            <!-- Email -->
+                            <StackLayout Grid.Column="1" HorizontalOptions="Center">
+                                <Frame BackgroundColor="#4A90E2"
+                                       CornerRadius="30"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       HasShadow="True"
+                                       Padding="0">
+                                    <Button Text="📧"
+                                            FontSize="28"
+                                            BackgroundColor="Transparent"
+                                            TextColor="White"
+                                            Clicked="OnEmailClicked" />
+                                </Frame>
+                                <Label Text="Email"
+                                       FontSize="12"
+                                       TextColor="Black"
+                                       HorizontalOptions="Center"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+
+                            <!-- Llamada -->
+                            <StackLayout Grid.Column="2" HorizontalOptions="Center">
+                                <Frame BackgroundColor="#007AFF"
+                                       CornerRadius="30"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       HasShadow="True"
+                                       Padding="0">
+                                    <Button Text="📞"
+                                            FontSize="28"
+                                            BackgroundColor="Transparent"
+                                            TextColor="White"
+                                            Clicked="OnLlamadaClicked" />
+                                </Frame>
+                                <Label Text="Llamar"
+                                       FontSize="12"
+                                       TextColor="Black"
+                                       HorizontalOptions="Center"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+
+                            <!-- Chat interno -->
+                            <StackLayout Grid.Column="3" HorizontalOptions="Center">
+                                <Frame BackgroundColor="#4A7C59"
+                                       CornerRadius="30"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       HasShadow="True"
+                                       Padding="0">
+                                    <Button Text="💭"
+                                            FontSize="28"
+                                            BackgroundColor="Transparent"
+                                            TextColor="White"
+                                            Clicked="OnChatClicked" />
+                                </Frame>
+                                <Label Text="Chat"
+                                       FontSize="12"
+                                       TextColor="Black"
+                                       HorizontalOptions="Center"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+                        </Grid>
+                    </StackLayout>
+
+                    <!-- Espacio adicional -->
                     <BoxView HeightRequest="100" BackgroundColor="Transparent" />
                 </StackLayout>
             </StackLayout>
         </ScrollView>
 
-        <!-- Error view -->
-        <Grid Grid.Row="1" x:Name="ErrorGrid" IsVisible="False" BackgroundColor="White">
-            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20" Padding="40">
-                <Label Text="😞"
-                       FontSize="60"
-                       HorizontalOptions="Center" />
-                <Label x:Name="ErrorMessageLabel"
-                       Text="No se pudo cargar la información del servicio"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="Gray"
-                       HorizontalOptions="Center"
-                       HorizontalTextAlignment="Center" />
-                <Button Text="Reintentar"
-                        BackgroundColor="#4A7C59"
-                        TextColor="White"
-                        CornerRadius="20"
-                        Padding="30,10"
-                        Clicked="OnReintentarClicked" />
-            </StackLayout>
-        </Grid>
-
-        <!-- Botones de acción flotantes -->
+        <!-- Botón contratar -->
         <Grid Grid.Row="2" BackgroundColor="White" Padding="20,15,20,25">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Botón contactar -->
-            <Button Grid.Column="0"
-                    Text="💬 Contactar"
-                    BackgroundColor="Transparent"
-                    TextColor="#4A7C59"
-                    BorderColor="#4A7C59"
-                    BorderWidth="2"
-                    FontSize="16"
-                    FontAttributes="Bold"
-                    HeightRequest="50"
-                    CornerRadius="25"
-                    Clicked="OnContactarClicked" />
-
-            <!-- Botón contratar -->
-            <Button Grid.Column="2"
-                    x:Name="ContratarButton"
+            <Button x:Name="ContratarButton"
                     Text="🤝 Contratar Servicio"
                     BackgroundColor="#4A7C59"
                     TextColor="White"
