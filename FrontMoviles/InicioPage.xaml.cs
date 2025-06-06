@@ -494,11 +494,11 @@ public partial class InicioPage : ContentPage
             if (!confirmar)
                 return;
 
-            // Mostrar indicador de carga
-            var button = sender as Button;
-            var originalText = button.Text;
-            button.Text = "🔄";
-            button.IsEnabled = false;
+            //// Mostrar indicador de carga
+            //var button = sender as Button;
+            //var originalText = button.Text;
+            //button.Text = "🔄";
+            //button.IsEnabled = false;
 
             // Log del logout
             LogLogoutAttempt();
@@ -519,12 +519,12 @@ public partial class InicioPage : ContentPage
             }
             else
             {
-                // Si por alguna razón no se cerró la sesión
-                await DisplayAlert("Error", "No se pudo cerrar la sesión. Intenta nuevamente.", "OK");
+                //// Si por alguna razón no se cerró la sesión
+                //await DisplayAlert("Error", "No se pudo cerrar la sesión. Intenta nuevamente.", "OK");
 
-                // Restaurar botón
-                button.Text = originalText;
-                button.IsEnabled = true;
+                //// Restaurar botón
+                //button.Text = originalText;
+                //button.IsEnabled = true;
             }
         }
         catch (Exception ex)

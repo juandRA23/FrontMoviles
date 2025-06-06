@@ -231,7 +231,7 @@ public partial class DetalleServicioPage : ContentPage
                 _ => ("🔧", "#A8D5BA")
             };
 
-            IconoLabel.Text = icono;
+            //IconoLabel.Text = icono;
             IconoFrame.BackgroundColor = Color.FromArgb(color);
 
             System.Diagnostics.Debug.WriteLine($"✅ Icono configurado: {icono} con color {color}");
@@ -239,7 +239,7 @@ public partial class DetalleServicioPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error configurando icono: {ex.Message}");
-            IconoLabel.Text = "🔧";
+            //IconoLabel.Text = "🔧";
             IconoFrame.BackgroundColor = Color.FromArgb("#A8D5BA");
         }
     }
@@ -404,51 +404,7 @@ public partial class DetalleServicioPage : ContentPage
 
     #region Eventos de acción
 
-    private async void OnContratarClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            if (!SessionManager.EstaLogueado())
-            {
-                await DisplayAlert("Sesión requerida",
-                    "Debes iniciar sesión para contratar servicios", "OK");
-                return;
-            }
-
-            var confirmar = await DisplayAlert(
-                "Contratar Servicio",
-                $"¿Deseas contratar el servicio '{_servicio.Titulo}' por ₡{_servicio.Precio:N0}/hora?",
-                "Sí, contratar",
-                "Cancelar");
-
-            if (confirmar)
-            {
-                // Mostrar indicador de carga
-                ContratarButton.Text = "Procesando...";
-                ContratarButton.IsEnabled = false;
-
-                // Simular proceso de contratación
-                await Task.Delay(2000);
-
-                await DisplayAlert("¡Éxito!",
-                    "Tu solicitud de contratación ha sido enviada. El proveedor se pondrá en contacto contigo pronto.",
-                    "OK");
-
-                System.Diagnostics.Debug.WriteLine($"🤝 Servicio contratado: {_servicio.Titulo}");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error contratando: {ex.Message}");
-            await DisplayAlert("Error", "No se pudo procesar la contratación", "OK");
-        }
-        finally
-        {
-            // Restaurar botón
-            ContratarButton.Text = "🤝 Contratar Servicio";
-            ContratarButton.IsEnabled = true;
-        }
-    }
+   
 
     #endregion
 
@@ -555,38 +511,8 @@ public partial class DetalleServicioPage : ContentPage
 
     #region Lifecycle
 
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-
-        // Verificar si el usuario puede contratar (no puede contratar sus propios servicios)
-        VerificarPermisoContratacion();
-
-        System.Diagnostics.Debug.WriteLine($"👁️ DetalleServicioPage apareció para: {_servicio.Titulo}");
-    }
-
-    private void VerificarPermisoContratacion()
-    {
-        try
-        {
-            var userEmail = SessionManager.ObtenerEmailUsuario();
-
-            // Si es el mismo usuario que publicó el servicio, modificar botón de contratar
-            if (!string.IsNullOrEmpty(userEmail) &&
-                _servicio.Usuario?.Correo?.Equals(userEmail, StringComparison.OrdinalIgnoreCase) == true)
-            {
-                ContratarButton.Text = "Tu servicio";
-                ContratarButton.IsEnabled = false;
-                ContratarButton.BackgroundColor = Colors.Gray;
-
-                System.Diagnostics.Debug.WriteLine("ℹ️ Usuario no puede contratar su propio servicio");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error verificando permisos: {ex.Message}");
-        }
-    }
+  
+ 
 
     protected override void OnDisappearing()
     {

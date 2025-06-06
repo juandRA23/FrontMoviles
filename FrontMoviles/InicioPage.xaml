@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FrontMoviles.InicioPage"
-             Title="SERVIFLEX"
+            
              BackgroundColor="White">
 
     <Grid>
@@ -60,27 +60,20 @@
                         </StackLayout>
 
                         <!-- Botón notificaciones -->
-                        <Button Grid.Column="1" 
-                                Text="🔔"
-                                FontSize="20"
-                                BackgroundColor="Transparent"
-                                TextColor="White"
-                                WidthRequest="40"
-                                HeightRequest="40"
-                                CornerRadius="20"
-                                Margin="0,0,10,0"
-                                Clicked="OnNotificacionesClicked" />
+                        <ImageButton Grid.Column="1" 
+             Source="notifications.png"
+             WidthRequest="40"
+             HeightRequest="40"
+             BackgroundColor="Transparent"
+             Clicked="OnNotificacionesClicked" />
 
                         <!-- Botón logout -->
-                        <Button Grid.Column="2" 
-                                Text="🚪"
-                                FontSize="18"
-                                BackgroundColor="Transparent"
-                                TextColor="White"
-                                WidthRequest="40"
-                                HeightRequest="40"
-                                CornerRadius="20"
-                                Clicked="OnLogoutClicked" />
+                        <ImageButton Grid.Column="2" 
+             Source="logout.png"
+             WidthRequest="40"
+             HeightRequest="40"
+             BackgroundColor="Transparent"
+             Clicked="OnLogoutClicked" />
                     </Grid>
 
                     <!-- Título principal -->
@@ -104,11 +97,11 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <Label Grid.Column="0" 
-                                   Text="🔍"
-                                   FontSize="16"
-                                   TextColor="Gray"
-                                   VerticalOptions="Center" />
+                            <Image Grid.Column="0" 
+               Source="search.png"
+               WidthRequest="16"
+               HeightRequest="16"
+               VerticalOptions="Center" />
 
                             <Entry Grid.Column="1"
                                    x:Name="BusquedaEntry"
@@ -156,10 +149,11 @@
                                        HeightRequest="50"
                                        HasShadow="False"
                                        Padding="0">
-                                    <Button Text="📚"
-                                            FontSize="20"
-                                            BackgroundColor="Transparent"
-                                            TextColor="White"
+                                    <ImageButton Grid.Column="1" 
+                                    Source="book.png"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    BackgroundColor="Transparent"
                                             Clicked="OnCategoriaClicked"
                                             CommandParameter="Educacion" />
                                 </Frame>
@@ -178,10 +172,11 @@
                                        HeightRequest="50"
                                        HasShadow="False"
                                        Padding="0">
-                                    <Button Text="🏠"
-                                            FontSize="20"
-                                            BackgroundColor="Transparent"
-                                            TextColor="White"
+                                    <ImageButton Grid.Column="1" 
+Source="home.png"
+WidthRequest="40"
+HeightRequest="40"
+BackgroundColor="Transparent"
                                             Clicked="OnCategoriaClicked"
                                             CommandParameter="Hogar" />
                                 </Frame>
@@ -200,10 +195,11 @@
                                        HeightRequest="50"
                                        HasShadow="False"
                                        Padding="0">
-                                    <Button Text="💻"
-                                            FontSize="20"
-                                            BackgroundColor="Transparent"
-                                            TextColor="White"
+                                    <ImageButton Grid.Column="1" 
+Source="computer.png"
+WidthRequest="40"
+HeightRequest="40"
+BackgroundColor="Transparent"
                                             Clicked="OnCategoriaClicked"
                                             CommandParameter="Tecnologia" />
                                 </Frame>
@@ -222,10 +218,11 @@
                                        HeightRequest="50"
                                        HasShadow="False"
                                        Padding="0">
-                                    <Button Text="🎨"
-                                            FontSize="20"
-                                            BackgroundColor="Transparent"
-                                            TextColor="White"
+                                    <ImageButton Grid.Column="1" 
+Source="palette.png"
+WidthRequest="40"
+HeightRequest="40"
+BackgroundColor="Transparent"
                                             Clicked="OnCategoriaClicked"
                                             CommandParameter="Diseno" />
                                 </Frame>
@@ -281,11 +278,12 @@
                        HeightRequest="40"
                        HasShadow="False"
                        Padding="0">
-                    <Button Text="🏠"
-                            FontSize="18"
-                            BackgroundColor="Transparent"
-                            TextColor="White"
-                            Clicked="OnInicioClicked" />
+                    <ImageButton Grid.Column="2" 
+                         Source="home.png"
+                         WidthRequest="40"
+                         HeightRequest="40"
+                         BackgroundColor="Transparent"
+                         Clicked="OnInicioClicked" />
                 </Frame>
                 <Label Text="Inicio" 
                        FontSize="12" 
@@ -303,10 +301,12 @@
                        HeightRequest="40"
                        HasShadow="False"
                        Padding="0">
-                    <Button Text="📋"
-                            FontSize="18"
-                            BackgroundColor="Transparent"
-                            TextColor="Gray"
+                    <ImageButton Grid.Column="2" 
+             Source="receipt.png"
+             WidthRequest="40"
+             HeightRequest="40"
+             BackgroundColor="Transparent"
+             
                             Clicked="OnServiciosClicked" />
                 </Frame>
                 <Label Text="Servicios" 
@@ -324,10 +324,12 @@
                        HeightRequest="40"
                        HasShadow="False"
                        Padding="0">
-                    <Button Text="➕"
-                            FontSize="18"
-                            BackgroundColor="Transparent"
-                            TextColor="Gray"
+                    <ImageButton Grid.Column="2" 
+             Source="publish.png"
+             WidthRequest="40"
+             HeightRequest="40"
+             BackgroundColor="Transparent"
+             
                             Clicked="OnPublicarClicked" />
                 </Frame>
                 <Label Text="Publicar" 
@@ -345,10 +347,12 @@
                        HeightRequest="40"
                        HasShadow="False"
                        Padding="0">
-                    <Button Text="👤"
-                            FontSize="18"
-                            BackgroundColor="Transparent"
-                            TextColor="Gray"
+                    <ImageButton Grid.Column="2" 
+             Source="person.png"
+             WidthRequest="40"
+             HeightRequest="40"
+             BackgroundColor="Transparent"
+             
                             Clicked="OnPerfilClicked" />
                 </Frame>
                 <Label Text="Perfil" 

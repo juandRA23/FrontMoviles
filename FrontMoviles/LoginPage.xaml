@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FrontMoviles.LoginPage"
-             Title="LoginPage"
+           
              BackgroundColor="{StaticResource Background}"
              NavigationPage.HasNavigationBar="False">
     <ScrollView>
@@ -78,10 +78,7 @@
                 </Label>
             </VerticalStackLayout>
 
-            <Button Text="TEST LOGS" 
-        BackgroundColor="Red"
-        TextColor="White"
-        Clicked="TestLogsClicked" />
+         
 
 
             <!-- Botón iniciar sesión -->

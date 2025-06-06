@@ -14,7 +14,7 @@ namespace FrontMoviles.Servicios
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        private const string BASE_URL = "http://localhost:56387/"; // Cambia por tu URL base //"";"http://10.0.2.2:56387/"
+        private const string BASE_URL = "http://localhost:56387/"; // Cambia por tu URL base //""; "http://10.0.2.2:56387/"
 
 
         public ApiService()
