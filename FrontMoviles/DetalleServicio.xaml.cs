@@ -525,4 +525,56 @@ public partial class DetalleServicioPage : ContentPage
     }
 
     #endregion
+
+    // Agregar estos métodos al archivo DetalleServicioPage.xaml.cs
+
+    #region Eventos de reseñas
+
+    private async void OnEscribirResenaClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (!SessionManager.EstaLogueado())
+            {
+                await DisplayAlert("Sesión requerida",
+                    "Debes iniciar sesión para escribir una reseña", "OK");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"📝 Navegando a crear reseña para: {_servicio.Titulo}");
+
+            // Navegar a la página de crear reseña
+            await Navigation.PushAsync(new CrearResenaPage(_servicio));
+
+            System.Diagnostics.Debug.WriteLine("✅ Navegación exitosa a CrearResenaPage");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error navegando a crear reseña: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo abrir la página de reseñas", "OK");
+        }
+    }
+
+    private async void OnVerResenasClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"👀 Ver reseñas del servicio: {_servicio.Titulo}");
+
+            // Aquí podrías navegar a una página de reseñas o mostrar un modal
+            await DisplayAlert("Ver Reseñas",
+                "Funcionalidad de ver todas las reseñas próximamente.\n\n" +
+                "Por ahora puedes escribir tu propia reseña.", "OK");
+
+            // Futura implementación:
+            // await Navigation.PushAsync(new ResenasPage(_servicio));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error viendo reseñas: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo abrir las reseñas", "OK");
+        }
+    }
+
+    #endregion
 }

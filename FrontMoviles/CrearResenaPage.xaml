@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FrontMoviles.CrearResenaPage"
+             BackgroundColor="White"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="#4A7C59" Padding="20,50,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Botón regresar -->
+            <Button Grid.Column="0" 
+                    Text="←"
+                    FontSize="24"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnBackClicked" />
+
+            <!-- Título -->
+            <Label Grid.Column="1" 
+                   Text="Escribir Reseña"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <!-- Botón ayuda -->
+            <Button Grid.Column="2" 
+                    Text="❓"
+                    FontSize="18"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnHelpClicked" />
+        </Grid>
+
+        <!-- Contenido principal -->
+        <ScrollView Grid.Row="1">
+            <StackLayout Padding="20" Spacing="25">
+
+                <!-- Información del servicio -->
+                <Frame BackgroundColor="#F0F8FF" CornerRadius="10" HasShadow="False" Padding="20">
+                    <StackLayout Spacing="15">
+                        <Label Text="Servicio a evaluar" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="#4A7C59" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icono del servicio -->
+                            <Frame Grid.Column="0"
+                                   x:Name="IconoServicioFrame"
+                                   BackgroundColor="#A8D5BA"
+                                   CornerRadius="10"
+                                   WidthRequest="50"
+                                   HeightRequest="50"
+                                   HasShadow="False"
+                                   Padding="0">
+                                <Label x:Name="IconoServicioLabel"
+                                       Text="🔧"
+                                       FontSize="24"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Frame>
+
+                            <!-- Información del servicio -->
+                            <StackLayout Grid.Column="1" Spacing="5" Margin="15,0,0,0" VerticalOptions="Center">
+                                <Label x:Name="CategoriaServicioLabel"
+                                       Text="CATEGORÍA"
+                                       FontSize="12"
+                                       TextColor="#4A90A4"
+                                       FontAttributes="Bold" />
+
+                                <Label x:Name="TituloServicioLabel"
+                                       Text="Título del Servicio"
+                                       FontSize="16"
+                                       TextColor="Black"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="WordWrap" />
+
+                                <Label x:Name="ProveedorServicioLabel"
+                                       Text="Por: Proveedor"
+                                       FontSize="12"
+                                       TextColor="Gray" />
+                            </StackLayout>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Calificación -->
+                <Frame BackgroundColor="#F8F9FA" CornerRadius="10" HasShadow="False" Padding="20">
+                    <StackLayout Spacing="20">
+                        <Label Text="Tu calificación" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="#4A7C59" />
+
+                        <StackLayout Spacing="10" HorizontalOptions="Center">
+                            <Label Text="¿Cómo calificarías este servicio?"
+                                   FontSize="14"
+                                   TextColor="Gray"
+                                   HorizontalOptions="Center" />
+
+                            <!-- Estrellas de calificación -->
+                            <StackLayout Orientation="Horizontal" Spacing="10" HorizontalOptions="Center">
+                                <Label x:Name="Star1" Text="☆" FontSize="40" TextColor="#E0E0E0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStarClicked" CommandParameter="1" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                <Label x:Name="Star2" Text="☆" FontSize="40" TextColor="#E0E0E0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStarClicked" CommandParameter="2" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                <Label x:Name="Star3" Text="☆" FontSize="40" TextColor="#E0E0E0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStarClicked" CommandParameter="3" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                <Label x:Name="Star4" Text="☆" FontSize="40" TextColor="#E0E0E0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStarClicked" CommandParameter="4" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                <Label x:Name="Star5" Text="☆" FontSize="40" TextColor="#E0E0E0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStarClicked" CommandParameter="5" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </StackLayout>
+
+                            <Label x:Name="CalificacionTextoLabel"
+                                   Text="Toca las estrellas para calificar"
+                                   FontSize="14"
+                                   TextColor="Gray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Comentario -->
+                <Frame BackgroundColor="#F8F9FA" CornerRadius="10" HasShadow="False" Padding="20">
+                    <StackLayout Spacing="15">
+                        <Label Text="Tu comentario" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="#4A7C59" />
+
+                        <StackLayout Spacing="10">
+                            <Label Text="Comparte tu experiencia con este servicio (opcional)"
+                                   FontSize="14"
+                                   TextColor="Gray" />
+
+                            <Editor x:Name="ComentarioEditor"
+                                    Placeholder="Escribe aquí tu experiencia con este servicio. ¿Qué te gustó? ¿Qué se podría mejorar?"
+                                    BackgroundColor="White"
+                                    HeightRequest="120"
+                                    MaxLength="500"
+                                    TextChanged="OnComentarioTextChanged" />
+
+                            <Label x:Name="ContadorCaracteresLabel"
+                                   Text="0/500 caracteres"
+                                   FontSize="12"
+                                   TextColor="Gray"
+                                   HorizontalOptions="End" />
+                        </StackLayout>
+
+                        <!-- Consejos para comentarios -->
+                        <Frame BackgroundColor="#E8F5E8" CornerRadius="8" HasShadow="False" Padding="15">
+                            <StackLayout Spacing="5">
+                                <Label Text="💡 Consejos para una buena reseña"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#4A7C59" />
+                                <Label Text="• Sé específico sobre la calidad del servicio
+• Menciona si fue puntual y profesional
+• Comparte si recomendarías este servicio
+• Mantén un tono respetuoso y constructivo"
+                                       FontSize="12"
+                                       TextColor="#4A7C59" />
+                            </StackLayout>
+                        </Frame>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Botones de acción -->
+                <StackLayout Spacing="15" Margin="0,20,0,30">
+                    <Button Text="Publicar Reseña" 
+                            x:Name="PublicarButton"
+                            BackgroundColor="#4A7C59"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HeightRequest="50"
+                            CornerRadius="25"
+                            IsEnabled="False"
+                            Clicked="OnPublicarClicked" />
+
+                    <Button Text="Cancelar" 
+                            BackgroundColor="Transparent"
+                            TextColor="#4A7C59"
+                            BorderColor="#4A7C59"
+                            BorderWidth="1"
+                            FontSize="14"
+                            HeightRequest="45"
+                            CornerRadius="22"
+                            Clicked="OnCancelarClicked" />
+                </StackLayout>
+
+            </StackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

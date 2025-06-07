@@ -512,4 +512,129 @@ namespace FrontMoviles.Modelos
     }
 
     #endregion
+
+    #region Modelos para Obtener Perfil (Nueva API)
+
+    public class ReqObtenerPerfil
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+    }
+
+    public class ResObtenerPerfil
+    {
+        [JsonPropertyName("Usuario")]
+        public Usuario Usuario { get; set; }
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
+
+    // Agregar estos modelos a FrontMoviles/Modelos/UsuarioModels.cs
+
+    #region Modelos para Actualizar Datos de Usuario
+
+    public class ReqActualizarDatosUsuario
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+
+        [JsonPropertyName("ProvinciaId")]
+        public int ProvinciaId { get; set; }
+
+        [JsonPropertyName("CantonId")]
+        public int CantonId { get; set; }
+
+        [JsonPropertyName("Telefono")]
+        public string Telefono { get; set; }
+
+        [JsonPropertyName("Direccion")]
+        public string Direccion { get; set; }
+    }
+
+    public class ResActualizarDatosUsuario
+    {
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
+
+
+    // Agregar estos modelos a FrontMoviles/Modelos/UsuarioModels.cs
+
+    #region Modelos de Reseñas
+
+    public class Resena
+    {
+        [JsonPropertyName("ResenaId")]
+        public int ResenaId { get; set; }
+
+        [JsonPropertyName("Servicio")]
+        public Servicio Servicio { get; set; }
+
+        [JsonPropertyName("Usuario")]
+        public Usuario Usuario { get; set; }
+
+        [JsonPropertyName("Calificacion")]
+        public int Calificacion { get; set; }
+
+        [JsonPropertyName("Comentario")]
+        public string Comentario { get; set; }
+
+        [JsonPropertyName("CreatedAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("UpdatedAt")]
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class ReqInsertarResena
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+
+        [JsonPropertyName("Resena")]
+        public Resena Resena { get; set; }
+    }
+
+    public class ResInsertarResena
+    {
+        [JsonPropertyName("mensaje")]
+        public string Mensaje { get; set; }
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    public class ReqEliminarResena
+    {
+        [JsonPropertyName("Resena")]
+        public Resena Resena { get; set; }
+    }
+
+    public class ResEliminarResena
+    {
+        [JsonPropertyName("mensaje")]
+        public string Mensaje { get; set; }
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
 }

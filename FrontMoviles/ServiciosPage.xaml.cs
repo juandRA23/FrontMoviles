@@ -17,6 +17,7 @@ public partial class ServiciosPage : ContentPage
         InitializeComponent();
         _apiService = new ApiService();
         CargarServicios();
+        ActualizarBotonesFiltro(TodosButton);
     }
 
     #region Carga de datos
@@ -26,17 +27,16 @@ public partial class ServiciosPage : ContentPage
         try
         {
             System.Diagnostics.Debug.WriteLine("🔄 Cargando servicios...");
-
-            // Mostrar indicador de carga
             MostrarEstado("loading");
 
-            // Llamar a la API
             var response = await _apiService.ObtenerServiciosAsync();
 
             if (response.Resultado && response.Servicios != null)
             {
                 _todosLosServicios = response.Servicios;
-                _serviciosFiltrados = new List<Servicio>(_todosLosServicios);
+                _serviciosFiltrados = new List<Servicio>(_todosLosServicios); // Update _serviciosFiltrados
+
+                CrearListasPorCategoria();
 
                 System.Diagnostics.Debug.WriteLine($"✅ Servicios cargados: {_todosLosServicios.Count}");
 
@@ -64,16 +64,47 @@ public partial class ServiciosPage : ContentPage
         }
     }
 
+    private void CrearListasPorCategoria()
+    {
+        var tutorias = _todosLosServicios.Where(s => s.Categoria?.Nombre?.Equals("Tutorías", StringComparison.OrdinalIgnoreCase) == true).ToList();
+        var mantenimientoReparaciones = _todosLosServicios.Where(s => s.Categoria?.Nombre?.Equals("Mantenimiento y Reparaciones", StringComparison.OrdinalIgnoreCase) == true).ToList();
+        var cuidadoPersonal = _todosLosServicios.Where(s => s.Categoria?.Nombre?.Equals("Cuidado Personal", StringComparison.OrdinalIgnoreCase) == true).ToList();
+        var tecnologiaElectronica = _todosLosServicios.Where(s => s.Categoria?.Nombre?.Equals("Tecnología y Electrónica", StringComparison.OrdinalIgnoreCase) == true).ToList();
+        var serviciosDomesticos = _todosLosServicios.Where(s => s.Categoria?.Nombre?.Equals("Servicios Domésticos", StringComparison.OrdinalIgnoreCase) == true).ToList();
+
+        System.Diagnostics.Debug.WriteLine($"📊 Distribución de servicios por categoría:");
+        System.Diagnostics.Debug.WriteLine($"   • Tutorías: {tutorias.Count} servicios");
+        System.Diagnostics.Debug.WriteLine($"   • Mantenimiento y Reparaciones: {mantenimientoReparaciones.Count} servicios");
+        System.Diagnostics.Debug.WriteLine($"   • Cuidado Personal: {cuidadoPersonal.Count} servicios");
+        System.Diagnostics.Debug.WriteLine($"   • Tecnología y Electrónica: {tecnologiaElectronica.Count} servicios");
+        System.Diagnostics.Debug.WriteLine($"   • Servicios Domésticos: {serviciosDomesticos.Count} servicios");
+
+        ServiciosTutorias = tutorias;
+        ServiciosMantenimientoReparaciones = mantenimientoReparaciones;
+        ServiciosCuidadoPersonal = cuidadoPersonal;
+        ServiciosTecnologiaElectronica = tecnologiaElectronica;
+        ServiciosDomesticos = serviciosDomesticos;
+    }
+
+    // Propiedades para almacenar las listas por categoría
+    public List<Servicio> ServiciosTutorias { get; private set; } = new List<Servicio>();
+    public List<Servicio> ServiciosMantenimientoReparaciones { get; private set; } = new List<Servicio>();
+    public List<Servicio> ServiciosCuidadoPersonal { get; private set; } = new List<Servicio>();
+    public List<Servicio> ServiciosTecnologiaElectronica { get; private set; } = new List<Servicio>();
+    public List<Servicio> ServiciosDomesticos { get; private set; } = new List<Servicio>();
+
     private void CargarServiciosEnUI()
     {
         try
         {
             ServiciosContainer.Children.Clear();
+            System.Diagnostics.Debug.WriteLine($"🔄 Actualizando UI con {_serviciosFiltrados.Count} servicios");
 
             foreach (var servicio in _serviciosFiltrados)
             {
                 var servicioFrame = CrearServicioUI(servicio);
                 ServiciosContainer.Children.Add(servicioFrame);
+                System.Diagnostics.Debug.WriteLine($"✅ Agregado servicio: {servicio.Titulo}");
             }
 
             System.Diagnostics.Debug.WriteLine($"✅ UI actualizada con {_serviciosFiltrados.Count} servicios");
@@ -339,15 +370,6 @@ public partial class ServiciosPage : ContentPage
 
     #region Filtros
 
-    private void OnFiltroClicked(object sender, EventArgs e)
-    {
-        if (sender is Button button && button.CommandParameter is string filtro)
-        {
-            _filtroActual = filtro;
-            AplicarFiltro(filtro);
-            ActualizarBotonesFiltro(button);
-        }
-    }
 
     private void AplicarFiltro(string filtro)
     {
@@ -355,7 +377,7 @@ public partial class ServiciosPage : ContentPage
         {
             if (filtro == "Todos")
             {
-                _serviciosFiltrados = new List<Servicio>(_todosLosServicios);
+                _serviciosFiltrados = new List<Servicio>(_todosLosServicios); // Update _serviciosFiltrados
             }
             else
             {
@@ -383,13 +405,47 @@ public partial class ServiciosPage : ContentPage
             DisplayAlert("Error", "Error al aplicar filtro", "OK");
         }
     }
-
     private void ActualizarBotonesFiltro(Button botonSeleccionado)
     {
-        // Aquí podrías implementar lógica para cambiar estilos de botones
-        // Por simplicidad, se mantiene el estilo actual
+        // Lista de todos los botones de filtro
+        var botonesFiltro = new List<Button>
+    {
+        TodosButton,
+        TutoriasButton,
+        MantenimientoButton,
+        CuidadoPersonalButton,
+        TecnologiaButton,
+        DomesticosButton
+    };
+
+        // Resetear todos los botones al estilo no seleccionado
+        foreach (var boton in botonesFiltro)
+        {
+            boton.BackgroundColor = Color.FromHex("#FFFFFF"); // Fondo blanco/transparente
+            boton.TextColor = Color.FromHex("#4A7C59");       // Texto verde
+            boton.BorderColor = Color.FromHex("#4A7C59");     // Borde verde
+            boton.BorderWidth = 1;
+        }
+
+        // Aplicar estilo seleccionado al botón activo
+        if (botonSeleccionado != null)
+        {
+            botonSeleccionado.BackgroundColor = Color.FromHex("#4A7C59"); // Fondo verde
+            botonSeleccionado.TextColor = Color.FromHex("#FFFFFF");       // Texto blanco
+            botonSeleccionado.BorderColor = Color.FromHex("#4A7C59");     // Borde verde
+            botonSeleccionado.BorderWidth = 0; // Sin borde para el seleccionado
+        }
     }
 
+    private void OnFiltroClicked(object sender, EventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is string filtro)
+        {
+            _filtroActual = filtro;
+            AplicarFiltro(filtro);
+            ActualizarBotonesFiltro(button);
+        }
+    }
     #endregion
 
     #region Eventos de servicios - ✅ NAVEGACIÓN A DETALLE CORREGIDA

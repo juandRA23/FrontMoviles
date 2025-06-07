@@ -64,6 +64,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Update="CrearResenaPage.xaml.cs">
+		  <DependentUpon>CrearResenaPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="InicioPage.xaml.cs">
 			<DependentUpon>InicioPage.xaml</DependentUpon>
 		</Compile>
@@ -79,7 +82,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="CrearResenaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="DetalleServicio.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EditarPerfiPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="LoginPage.xaml">

@@ -1004,5 +1004,541 @@ namespace FrontMoviles.Servicios
         }
 
         #endregion
+
+        #region Método para Obtener Perfil (Nueva API)
+
+        // Nuevo método usando la API obtenerPerfil con SesionId
+        public async Task<ResObtenerPerfil> ObtenerPerfilUsuarioAsync()
+        {
+            try
+            {
+                // Verificar si hay sesión activa
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateObtenerPerfilErrorResponse(-10, "No hay sesión activa. Por favor, inicia sesión.");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Obtener SesionId
+                var sesionId = SessionManager.ObtenerSessionId();
+
+                if (string.IsNullOrEmpty(sesionId))
+                {
+                    return CreateObtenerPerfilErrorResponse(-11, "No se encontró información de sesión.");
+                }
+
+                // Crear el request con el SesionId
+                var request = new ReqObtenerPerfil
+                {
+                    SesionId = sesionId
+                };
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"🔄 Obteniendo perfil con SesionId: {sesionId}");
+                System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST a la nueva API
+                var response = await _httpClient.PostAsync("api/usuario/obtenerPerfil", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResObtenerPerfil>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateObtenerPerfilErrorResponse(-4, "Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("✅ Perfil obtenido exitosamente");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateObtenerPerfilErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401 (No autorizado), la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateObtenerPerfilErrorResponse(-12, "Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResObtenerPerfil>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateObtenerPerfilErrorResponse((int)response.StatusCode, $"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateObtenerPerfilErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateObtenerPerfilErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateObtenerPerfilErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResObtenerPerfil CreateObtenerPerfilErrorResponse(int errorCode, string message)
+        {
+            var errorList = new List<ErrorItem>();
+            var errorItem = new ErrorItem
+            {
+                ErrorCode = errorCode,
+                Message = message
+            };
+            errorList.Add(errorItem);
+
+            return new ResObtenerPerfil
+            {
+                Resultado = false,
+                Error = errorList,
+                Usuario = null
+            };
+        }
+
+        #endregion
+
+        // Agregar este método a FrontMoviles/Servicios/ApiService.cs
+
+        #region Método para Actualizar Datos de Usuario
+
+        public async Task<ResActualizarDatosUsuario> ActualizarDatosUsuarioAsync(ReqActualizarDatosUsuario request)
+        {
+            try
+            {
+                // Verificar si hay sesión activa
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateActualizarDatosErrorResponse(-10, "No hay sesión activa. Por favor, inicia sesión.");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"🔄 Actualizando datos de usuario...");
+                System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/usuario/actualizar", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResActualizarDatosUsuario>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateActualizarDatosErrorResponse(-4, "Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("✅ Datos actualizados exitosamente");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateActualizarDatosErrorResponse(-5, $"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401, la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateActualizarDatosErrorResponse(-12, "Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResActualizarDatosUsuario>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateActualizarDatosErrorResponse((int)response.StatusCode, $"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateActualizarDatosErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateActualizarDatosErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateActualizarDatosErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResActualizarDatosUsuario CreateActualizarDatosErrorResponse(int errorCode, string message)
+        {
+            return new ResActualizarDatosUsuario
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } }
+            };
+        }
+
+        #endregion
+
+
+        // Agregar estos métodos a FrontMoviles/Servicios/ApiService.cs
+
+        #region Métodos de Reseñas
+
+        // Método para insertar una reseña
+        public async Task<ResInsertarResena> InsertarResenaAsync(ReqInsertarResena request)
+        {
+            try
+            {
+                // Verificar si hay sesión activa
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateInsertarResenaErrorResponse("No hay sesión activa. Por favor, inicia sesión.");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"🌟 Insertando reseña...");
+                System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/resena/insertarResena", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResInsertarResena>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateInsertarResenaErrorResponse("Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("✅ Reseña insertada exitosamente");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateInsertarResenaErrorResponse($"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401, la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateInsertarResenaErrorResponse("Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResInsertarResena>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateInsertarResenaErrorResponse($"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateInsertarResenaErrorResponse($"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateInsertarResenaErrorResponse("Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateInsertarResenaErrorResponse($"Error inesperado: {ex.Message}");
+            }
+        }
+
+        // Método para eliminar una reseña
+        public async Task<ResEliminarResena> EliminarResenaAsync(ReqEliminarResena request)
+        {
+            try
+            {
+                // Verificar si hay sesión activa
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateEliminarResenaErrorResponse("No hay sesión activa. Por favor, inicia sesión.");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"🗑️ Eliminando reseña...");
+                System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/resena/eliminarResena", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResEliminarResena>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateEliminarResenaErrorResponse("Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("✅ Reseña eliminada exitosamente");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateEliminarResenaErrorResponse($"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Si es error 401, la sesión puede haber expirado
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        SessionManager.CerrarSesion();
+                        return CreateEliminarResenaErrorResponse("Sesión inválida. Por favor, inicia sesión nuevamente.");
+                    }
+
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResEliminarResena>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateEliminarResenaErrorResponse($"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateEliminarResenaErrorResponse($"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateEliminarResenaErrorResponse("Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateEliminarResenaErrorResponse($"Error inesperado: {ex.Message}");
+            }
+        }
+
+        // Métodos auxiliares para crear respuestas de error
+        private ResInsertarResena CreateInsertarResenaErrorResponse(string message)
+        {
+            return new ResInsertarResena
+            {
+                Resultado = false,
+                Mensaje = "",
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = -1, Message = message } }
+            };
+        }
+
+        private ResEliminarResena CreateEliminarResenaErrorResponse(string message)
+        {
+            return new ResEliminarResena
+            {
+                Resultado = false,
+                Mensaje = "",
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = -1, Message = message } }
+            };
+        }
+
+        #endregion
     }
 }

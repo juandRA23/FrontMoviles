@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FrontMoviles.EditarPerfilPage"
+             BackgroundColor="White"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="#4A7C59" Padding="20,50,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Botón regresar -->
+            <Button Grid.Column="0" 
+                    Text="←"
+                    FontSize="24"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnBackClicked" />
+
+            <!-- Título -->
+            <Label Grid.Column="1" 
+                   Text="Editar Perfil"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <!-- Botón ayuda -->
+            <Button Grid.Column="2" 
+                    Text="❓"
+                    FontSize="18"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnHelpClicked" />
+        </Grid>
+
+        <!-- Loading indicator -->
+        <Grid Grid.Row="1" x:Name="LoadingGrid" IsVisible="True" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20">
+                <ActivityIndicator IsRunning="True" Color="#4A7C59" />
+                <Label Text="Cargando datos..." 
+                       FontSize="16"
+                       TextColor="Gray"
+                       HorizontalOptions="Center" />
+            </StackLayout>
+        </Grid>
+
+        <!-- Contenido principal -->
+        <ScrollView Grid.Row="1" x:Name="ContentScrollView" IsVisible="False">
+            <StackLayout Padding="20" Spacing="25">
+
+                <!-- Información no editable -->
+                <Frame BackgroundColor="#F0F8FF" CornerRadius="10" HasShadow="False" Padding="20">
+                    <StackLayout Spacing="10">
+                        <Label Text="Información personal" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="#4A7C59" />
+
+                        <Label Text="Esta información no se puede editar desde aquí:"
+                               FontSize="12"
+                               TextColor="Gray" />
+
+                        <!-- Nombre completo (solo lectura) -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label Grid.Column="0" 
+                                   Text="👤"
+                                   FontSize="20"
+                                   VerticalOptions="Center"
+                                   Margin="0,0,10,0" />
+
+                            <StackLayout Grid.Column="1">
+                                <Label Text="Nombre completo"
+                                       FontSize="12"
+                                       TextColor="Gray" />
+                                <Label x:Name="NombreCompletoLabel"
+                                       Text="Cargando..."
+                                       FontSize="16"
+                                       TextColor="Black"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+                        </Grid>
+
+                        <!-- Email (solo lectura) -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label Grid.Column="0" 
+                                   Text="📧"
+                                   FontSize="20"
+                                   VerticalOptions="Center"
+                                   Margin="0,0,10,0" />
+
+                            <StackLayout Grid.Column="1">
+                                <Label Text="Correo electrónico"
+                                       FontSize="12"
+                                       TextColor="Gray" />
+                                <Label x:Name="EmailLabel"
+                                       Text="correo@ejemplo.com"
+                                       FontSize="16"
+                                       TextColor="Black"
+                                       FontAttributes="Bold" />
+                            </StackLayout>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Información editable -->
+                <Frame BackgroundColor="#F8F9FA" CornerRadius="10" HasShadow="False" Padding="20">
+                    <StackLayout Spacing="20">
+                        <Label Text="Información editable" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="#4A7C59" />
+
+                        <!-- Teléfono -->
+                        <StackLayout Spacing="5">
+                            <Label Text="📞 Teléfono *" 
+                                   FontAttributes="Bold" 
+                                   TextColor="Black" />
+                            <Entry x:Name="TelefonoEntry"
+                                   Placeholder="+506 8888-8888"
+                                   Keyboard="Telephone"
+                                   BackgroundColor="White"
+                                   HeightRequest="50" />
+                        </StackLayout>
+
+                        <!-- Provincia -->
+                        <StackLayout Spacing="5">
+                            <Label Text="🏛️ Provincia *" 
+                                   FontAttributes="Bold" 
+                                   TextColor="Black" />
+                            <Grid>
+                                <Picker x:Name="ProvinciaPicker"
+                                        Title="Seleccionar provincia"
+                                        TitleColor="Gray"
+                                        TextColor="Black"
+                                        FontSize="16"
+                                        BackgroundColor="White"
+                                        HeightRequest="50"
+                                        SelectedIndexChanged="OnProvinciaSelectionChanged" />
+                                <Label Text="▼" 
+                                       TextColor="Gray"
+                                       FontSize="12"
+                                       HorizontalOptions="End"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,15,0" />
+                            </Grid>
+                        </StackLayout>
+
+                        <!-- Cantón -->
+                        <StackLayout Spacing="5">
+                            <Label Text="🏘️ Cantón *" 
+                                   FontAttributes="Bold" 
+                                   TextColor="Black" />
+                            <Grid>
+                                <Picker x:Name="CantonPicker"
+                                        Title="Seleccionar cantón"
+                                        TitleColor="Gray"
+                                        TextColor="Black"
+                                        FontSize="16"
+                                        BackgroundColor="White"
+                                        HeightRequest="50"
+                                        IsEnabled="False" />
+                                <Label Text="▼" 
+                                       TextColor="Gray"
+                                       FontSize="12"
+                                       HorizontalOptions="End"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,15,0" />
+                            </Grid>
+                        </StackLayout>
+
+                        <!-- Dirección exacta -->
+                        <StackLayout Spacing="5">
+                            <Label Text="📍 Dirección exacta" 
+                                   FontAttributes="Bold" 
+                                   TextColor="Black" />
+                            <Editor x:Name="DireccionEditor"
+                                    Placeholder="Ej: 200m norte de la iglesia, casa amarilla con portón negro"
+                                    BackgroundColor="White"
+                                    HeightRequest="80" />
+                            <Label Text="Incluye referencias que ayuden a encontrar tu ubicación"
+                                   FontSize="12"
+                                   TextColor="Gray" />
+                        </StackLayout>
+
+                        <!-- Información adicional -->
+                        <Frame BackgroundColor="#E8F5E8" CornerRadius="8" HasShadow="False" Padding="15">
+                            <StackLayout Spacing="5">
+                                <Label Text="💡 Consejo"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#4A7C59" />
+                                <Label Text="Mantén tu información actualizada para que los clientes puedan contactarte fácilmente."
+                                       FontSize="12"
+                                       TextColor="#4A7C59" />
+                            </StackLayout>
+                        </Frame>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Botones de acción -->
+                <StackLayout Spacing="15" Margin="0,20,0,30">
+                    <Button Text="Guardar cambios" 
+                            x:Name="GuardarButton"
+                            BackgroundColor="#4A7C59"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HeightRequest="50"
+                            CornerRadius="25"
+                            Clicked="OnGuardarClicked" />
+
+                    <Button Text="Cancelar" 
+                            BackgroundColor="Transparent"
+                            TextColor="#4A7C59"
+                            BorderColor="#4A7C59"
+                            BorderWidth="1"
+                            FontSize="14"
+                            HeightRequest="45"
+                            CornerRadius="22"
+                            Clicked="OnCancelarClicked" />
+                </StackLayout>
+
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Error view -->
+        <Grid Grid.Row="1" x:Name="ErrorGrid" IsVisible="False" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20" Padding="40">
+                <Label Text="😞"
+                       FontSize="60"
+                       HorizontalOptions="Center" />
+                <Label x:Name="ErrorMessageLabel"
+                       Text="No se pudieron cargar los datos"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="Gray"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <Button Text="Reintentar"
+                        BackgroundColor="#4A7C59"
+                        TextColor="White"
+                        CornerRadius="20"
+                        Padding="30,10"
+                        Clicked="OnReintentarClicked" />
+            </StackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

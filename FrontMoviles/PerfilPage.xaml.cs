@@ -22,36 +22,74 @@ public partial class PerfilPage : ContentPage
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine("🔄 === CARGANDO PERFIL CON NUEVA API ===");
+
             // Mostrar indicador de carga
             MostrarEstado("loading");
 
-            // Obtener email del usuario logueado
-            var userEmail = SessionManager.ObtenerEmailUsuario();
-
-            if (string.IsNullOrEmpty(userEmail))
+            // Verificar sesión antes de cargar
+            if (!SessionManager.EstaLogueado())
             {
-                MostrarError("No se encontró información de sesión");
+                System.Diagnostics.Debug.WriteLine("❌ No hay sesión activa en PerfilPage");
+                MostrarError("No hay sesión activa. Por favor, inicia sesión.");
                 return;
             }
 
-            // Llamar a la API para obtener información del usuario
-            var response = await _apiService.ObtenerUsuarioAsync(userEmail);
+            var userEmail = SessionManager.ObtenerEmailUsuario();
+            var sesionId = SessionManager.ObtenerSessionId();
+
+            System.Diagnostics.Debug.WriteLine($"✅ Usuario logueado: {userEmail}");
+            System.Diagnostics.Debug.WriteLine($"✅ SesionId: {sesionId}");
+
+            // Llamar a la nueva API usando SesionId
+            var response = await _apiService.ObtenerPerfilUsuarioAsync();
 
             if (response.Resultado && response.Usuario != null)
             {
                 _usuarioActual = response.Usuario;
+
+                System.Diagnostics.Debug.WriteLine($"✅ Perfil cargado: {_usuarioActual.Nombre} {_usuarioActual.Apellido1}");
+
                 CargarDatosEnUI(_usuarioActual);
                 MostrarEstado("content");
             }
             else
             {
                 var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                System.Diagnostics.Debug.WriteLine($"❌ Error cargando perfil: {errorMessage}");
+
+                // Si es error de sesión, redirigir al login
+                if (errorMessage.Contains("sesión") || errorMessage.Contains("inválida") || errorMessage.Contains("inicia sesión"))
+                {
+                    await MostrarErrorSesionYRedirigir();
+                    return;
+                }
+
                 MostrarError($"Error al cargar perfil: {errorMessage}");
             }
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"💥 Excepción en CargarPerfilUsuario: {ex.Message}");
             MostrarError($"Error inesperado: {ex.Message}");
+        }
+    }
+
+    private async Task MostrarErrorSesionYRedirigir()
+    {
+        try
+        {
+            SessionManager.CerrarSesion();
+
+            await DisplayAlert("Sesión Expirada",
+                "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
+
+            // Redirigir al login
+            Application.Current.MainPage = new AppShell();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error redirigiendo: {ex.Message}");
         }
     }
 
@@ -59,6 +97,8 @@ public partial class PerfilPage : ContentPage
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine("🎨 Cargando datos en UI...");
+
             // Nombre completo
             var nombreCompleto = $"{usuario.Nombre} {usuario.Apellido1}";
             if (!string.IsNullOrEmpty(usuario.Apellido2))
@@ -112,9 +152,12 @@ public partial class PerfilPage : ContentPage
                 // Aquí podrías cargar la imagen real si tienes URLs de imágenes
                 FotoPerfilLabel.Text = "📷";
             }
+
+            System.Diagnostics.Debug.WriteLine("✅ Datos cargados en UI correctamente");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ Error cargando datos en UI: {ex.Message}");
             DisplayAlert("Error", $"Error al mostrar datos: {ex.Message}", "OK");
         }
     }
@@ -161,12 +204,14 @@ public partial class PerfilPage : ContentPage
         LoadingGrid.IsVisible = estado == "loading";
         ContentScrollView.IsVisible = estado == "content";
         ErrorGrid.IsVisible = estado == "error";
+        System.Diagnostics.Debug.WriteLine($"🔄 Estado UI cambiado a: {estado}");
     }
 
     private void MostrarError(string mensaje)
     {
         ErrorMessageLabel.Text = mensaje;
         MostrarEstado("error");
+        System.Diagnostics.Debug.WriteLine($"❌ Error mostrado: {mensaje}");
     }
 
     #endregion
@@ -185,6 +230,7 @@ public partial class PerfilPage : ContentPage
 
     private async void OnReintentarClicked(object sender, EventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("🔄 Reintentando cargar perfil...");
         CargarPerfilUsuario();
     }
 
@@ -194,11 +240,28 @@ public partial class PerfilPage : ContentPage
 
     private async void OnEditarPerfilClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("Editar Perfil", "Función en desarrollo", "OK");
-        // Aquí navegarías a una página de edición de perfil
-        // await Navigation.PushAsync(new EditarPerfilPage(_usuarioActual));
-    }
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("✏️ Navegando a editar perfil...");
 
+            // Verificar sesión antes de navegar
+            if (!SessionManager.EstaLogueado())
+            {
+                await DisplayAlert("Sesión requerida", "Debes iniciar sesión para editar el perfil", "OK");
+                return;
+            }
+
+            // Navegar a la página de editar perfil
+            await Navigation.PushAsync(new EditarPerfilPage());
+
+            System.Diagnostics.Debug.WriteLine("✅ Navegación a EditarPerfilPage exitosa");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error navegando a editar perfil: {ex.Message}");
+            await DisplayAlert("Error", $"Error al abrir edición de perfil: {ex.Message}", "OK");
+        }
+    }
     private async void OnCambiarContrasenaClicked(object sender, EventArgs e)
     {
         await DisplayAlert("Cambiar Contraseña", "Función en desarrollo", "OK");
@@ -218,6 +281,8 @@ public partial class PerfilPage : ContentPage
 
             if (confirmar)
             {
+                System.Diagnostics.Debug.WriteLine("🚪 Cerrando sesión desde perfil...");
+
                 // Limpiar la sesión
                 SessionManager.CerrarSesion();
 
@@ -230,6 +295,7 @@ public partial class PerfilPage : ContentPage
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ Error cerrando sesión: {ex.Message}");
             await DisplayAlert("Error", $"Error al cerrar sesión: {ex.Message}", "OK");
         }
     }
@@ -242,6 +308,7 @@ public partial class PerfilPage : ContentPage
     {
         base.OnDisappearing();
         _apiService?.Dispose();
+        System.Diagnostics.Debug.WriteLine("🚪 PerfilPage cerrada");
     }
 
     #endregion
