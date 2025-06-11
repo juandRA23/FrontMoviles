@@ -97,6 +97,9 @@
 		<MauiXaml Update="InicioPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="ResenaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="ServiciosPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

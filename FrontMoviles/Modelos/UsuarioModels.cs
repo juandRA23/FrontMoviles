@@ -637,4 +637,29 @@ namespace FrontMoviles.Modelos
     }
 
     #endregion
+
+
+    // Agregar estos modelos al final de FrontMoviles/Modelos/UsuarioModels.cs
+
+    #region Modelos para Listar Reseñas por Servicio
+
+    public class ReqListarResenasPorServicio
+    {
+        [JsonPropertyName("Servicio")]
+        public Servicio Servicio { get; set; }
+    }
+
+    public class ResListarResenasPorServicio
+    {
+        [JsonPropertyName("Resenas")]
+        public List<Resena> Resenas { get; set; } = new List<Resena>();
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
 }

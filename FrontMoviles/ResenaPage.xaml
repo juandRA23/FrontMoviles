@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FrontMoviles.ResenasPage"
+             BackgroundColor="White"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="#4A7C59" Padding="20,50,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Botón regresar -->
+            <Button Grid.Column="0" 
+                    Text="←"
+                    FontSize="24"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnBackClicked" />
+
+            <!-- Título -->
+            <Label Grid.Column="1" 
+                   Text="Reseñas del Servicio"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <!-- Botón escribir reseña -->
+            <Button Grid.Column="2" 
+                    Text="✏️"
+                    FontSize="18"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Clicked="OnEscribirResenaClicked" />
+        </Grid>
+
+        <!-- Loading indicator -->
+        <Grid Grid.Row="1" x:Name="LoadingGrid" IsVisible="True" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20">
+                <ActivityIndicator IsRunning="True" Color="#4A7C59" />
+                <Label Text="Cargando reseñas..." 
+                       FontSize="16"
+                       TextColor="Gray"
+                       HorizontalOptions="Center" />
+            </StackLayout>
+        </Grid>
+
+        <!-- Contenido principal -->
+        <RefreshView Grid.Row="1" x:Name="ContentRefreshView" IsVisible="False" Refreshing="OnRefreshing">
+            <ScrollView>
+                <StackLayout Padding="20" Spacing="20">
+
+                    <!-- Información del servicio -->
+                    <Frame BackgroundColor="#F0F8FF" CornerRadius="10" HasShadow="False" Padding="20">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icono del servicio -->
+                            <Frame Grid.Column="0"
+                                   x:Name="IconoServicioFrame"
+                                   BackgroundColor="#A8D5BA"
+                                   CornerRadius="10"
+                                   WidthRequest="50"
+                                   HeightRequest="50"
+                                   HasShadow="False"
+                                   Padding="0">
+                                <Label x:Name="IconoServicioLabel"
+                                       Text="🔧"
+                                       FontSize="24"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Frame>
+
+                            <!-- Información del servicio -->
+                            <StackLayout Grid.Column="1" Spacing="5" Margin="15,0,0,0" VerticalOptions="Center">
+                                <Label x:Name="CategoriaServicioLabel"
+                                       Text="CATEGORÍA"
+                                       FontSize="12"
+                                       TextColor="#4A90A4"
+                                       FontAttributes="Bold" />
+
+                                <Label x:Name="TituloServicioLabel"
+                                       Text="Título del Servicio"
+                                       FontSize="16"
+                                       TextColor="Black"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="WordWrap" />
+
+                                <Label x:Name="ProveedorServicioLabel"
+                                       Text="Por: Proveedor"
+                                       FontSize="12"
+                                       TextColor="Gray" />
+                            </StackLayout>
+
+                            <!-- Calificación promedio -->
+                            <StackLayout Grid.Column="2" HorizontalOptions="End" VerticalOptions="Center">
+                                <Label x:Name="CalificacionPromedioLabel"
+                                       Text="4.8"
+                                       FontSize="20"
+                                       TextColor="#4A7C59"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="Center" />
+                                <Label Text="★★★★★" 
+                                       FontSize="14" 
+                                       TextColor="#FFD700"
+                                       HorizontalOptions="Center" />
+                                <Label x:Name="TotalResenasLabel"
+                                       Text="23 reseñas"
+                                       FontSize="12"
+                                       TextColor="Gray"
+                                       HorizontalOptions="Center" />
+                            </StackLayout>
+                        </Grid>
+                    </Frame>
+
+                    <!-- Filtros de reseñas -->
+                    <Frame BackgroundColor="#F8F9FA" CornerRadius="10" HasShadow="False" Padding="15">
+                        <StackLayout Spacing="10">
+                            <Label Text="Filtrar reseñas" 
+                                   FontSize="16" 
+                                   FontAttributes="Bold"
+                                   TextColor="#4A7C59" />
+                            <ScrollView Orientation="Horizontal">
+                                <StackLayout Orientation="Horizontal" Spacing="10">
+                                    <Button x:Name="TodasButton" 
+                                            Text="Todas" 
+                                            BackgroundColor="#4A7C59"
+                                            TextColor="White"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="Todas" />
+                                    <Button x:Name="Cinco5Button" 
+                                            Text="5 ★" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="5" />
+                                    <Button x:Name="Cuatro4Button" 
+                                            Text="4 ★" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="4" />
+                                    <Button x:Name="Tres3Button" 
+                                            Text="3 ★" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="3" />
+                                    <Button x:Name="Dos2Button" 
+                                            Text="2 ★" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="2" />
+                                    <Button x:Name="Uno1Button" 
+                                            Text="1 ★" 
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            CornerRadius="15"
+                                            Padding="15,8"
+                                            Clicked="OnFiltroClicked"
+                                            CommandParameter="1" />
+                                </StackLayout>
+                            </ScrollView>
+                        </StackLayout>
+                    </Frame>
+
+                    <!-- Lista de reseñas -->
+                    <StackLayout x:Name="ResenasContainer" Spacing="15">
+                        <!-- Las reseñas se cargarán dinámicamente -->
+                    </StackLayout>
+
+                    <!-- Mensaje cuando no hay reseñas -->
+                    <StackLayout x:Name="NoResenasContainer" IsVisible="False" 
+                                 HorizontalOptions="Center" VerticalOptions="Center" 
+                                 Spacing="20" Padding="40">
+                        <Label Text="📝"
+                               FontSize="60"
+                               HorizontalOptions="Center" />
+                        <Label Text="No hay reseñas disponibles"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Gray"
+                               HorizontalOptions="Center" />
+                        <Label Text="¡Sé el primero en escribir una reseña!"
+                               FontSize="14"
+                               TextColor="Gray"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center" />
+                        <Button Text="Escribir Reseña"
+                                BackgroundColor="#4A7C59"
+                                TextColor="White"
+                                CornerRadius="20"
+                                Padding="30,10"
+                                Clicked="OnEscribirResenaClicked" />
+                    </StackLayout>
+
+                    <!-- Espacio adicional -->
+                    <BoxView HeightRequest="80" BackgroundColor="Transparent" />
+                </StackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- Error view -->
+        <Grid Grid.Row="1" x:Name="ErrorGrid" IsVisible="False" BackgroundColor="White">
+            <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20" Padding="40">
+                <Label Text="😞"
+                       FontSize="60"
+                       HorizontalOptions="Center" />
+                <Label x:Name="ErrorMessageLabel"
+                       Text="No se pudieron cargar las reseñas"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="Gray"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <Button Text="Reintentar"
+                        BackgroundColor="#4A7C59"
+                        TextColor="White"
+                        CornerRadius="20"
+                        Padding="30,10"
+                        Clicked="OnReintentarClicked" />
+            </StackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

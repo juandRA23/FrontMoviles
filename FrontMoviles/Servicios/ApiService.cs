@@ -1540,5 +1540,127 @@ namespace FrontMoviles.Servicios
         }
 
         #endregion
+
+
+        // Agregar este método en la sección de Reseñas en FrontMoviles/Servicios/ApiService.cs
+
+        #region Método para Listar Reseñas por Servicio
+
+        // Método para obtener reseñas de un servicio específico
+        public async Task<ResListarResenasPorServicio> ObtenerResenasPorServicioAsync(Servicio servicio)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 Obteniendo reseñas para servicio: {servicio.Titulo} (ID: {servicio.ServicioId})");
+
+                // Crear el request
+                var request = new ReqListarResenasPorServicio
+                {
+                    Servicio = servicio
+                };
+
+                // Serializar el objeto a JSON
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Hacer la petición POST
+                var response = await _httpClient.PostAsync("api/resena/listarResenasPorServicio", content);
+
+                // Leer la respuesta
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Log para debugging
+                System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var result = JsonSerializer.Deserialize<ResListarResenasPorServicio>(responseContent, options);
+
+                        if (result == null)
+                        {
+                            return CreateListarResenasErrorResponse("Respuesta vacía del servidor");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"✅ Reseñas obtenidas: {result.Resenas?.Count ?? 0}");
+                        return result;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
+                        return CreateListarResenasErrorResponse($"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                    }
+                }
+                else
+                {
+                    // Intentar deserializar el error
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+
+                        var errorResult = JsonSerializer.Deserialize<ResListarResenasPorServicio>(responseContent, options);
+                        if (errorResult != null)
+                        {
+                            return errorResult;
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede deserializar, crear error genérico
+                    }
+
+                    return CreateListarResenasErrorResponse($"Error del servidor ({response.StatusCode}): {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateListarResenasErrorResponse($"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateListarResenasErrorResponse("Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error inesperado: {ex.Message}");
+                return CreateListarResenasErrorResponse($"Error inesperado: {ex.Message}");
+            }
+        }
+
+        // Método auxiliar para crear respuestas de error
+        private ResListarResenasPorServicio CreateListarResenasErrorResponse(string message)
+        {
+            return new ResListarResenasPorServicio
+            {
+                Resultado = false,
+                Resenas = new List<Resena>(),
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = -1, Message = message } }
+            };
+        }
+
+        #endregion
     }
 }

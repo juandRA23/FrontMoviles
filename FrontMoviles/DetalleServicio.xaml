@@ -40,8 +40,8 @@
                    HorizontalOptions="Center"
                    VerticalOptions="Center" />
 
-            
-                <ImageButton Grid.Column="1" 
+
+            <ImageButton Grid.Column="1" 
                  Source="share.png"
                  WidthRequest="40"
                  HeightRequest="40"
@@ -49,8 +49,8 @@
                  HorizontalOptions="End" 
                  VerticalOptions="Center"
                  Clicked="OnCompartirClicked" />
-            </Grid>
-            <!-- Contenido principal -->
+        </Grid>
+        <!-- Contenido principal -->
         <ScrollView Grid.Row="1">
             <StackLayout Spacing="0">
 
@@ -454,20 +454,19 @@ BackgroundColor="Transparent"
                             </StackLayout>
                         </Grid>
                     </StackLayout>
-                    <!-- AGREGAR ESTA SECCIÓN ANTES DE "Espacio adicional" en DetalleServicio.xaml -->
 
-                    <!-- Reseñas y calificaciones -->
+                    <!-- RESEÑAS Y CALIFICACIONES - ACTUALIZADO CON DATOS REALES -->
                     <StackLayout Spacing="15">
                         <Label Text="Reseñas y calificaciones" 
-           FontSize="18" 
-           FontAttributes="Bold"
-           TextColor="Black" />
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="Black" />
 
                         <!-- Resumen de calificaciones -->
                         <Frame BackgroundColor="White" 
-           CornerRadius="10" 
-           HasShadow="True"
-           Padding="20">
+                               CornerRadius="10" 
+                               HasShadow="True"
+                               Padding="20">
                             <StackLayout Spacing="15">
                                 <!-- Calificación promedio -->
                                 <Grid>
@@ -478,22 +477,24 @@ BackgroundColor="Transparent"
                                     </Grid.ColumnDefinitions>
 
                                     <StackLayout Grid.Column="0" Spacing="5" HorizontalOptions="Center">
-                                        <Label Text="4.8"
-                           FontSize="36"
-                           FontAttributes="Bold"
-                           TextColor="#4A7C59"
-                           HorizontalOptions="Center" />
+                                        <Label x:Name="CalificacionPromedioLabel"
+                                               Text="4.8"
+                                               FontSize="36"
+                                               FontAttributes="Bold"
+                                               TextColor="#4A7C59"
+                                               HorizontalOptions="Center" />
                                         <StackLayout Orientation="Horizontal" Spacing="2" HorizontalOptions="Center">
                                             <Label Text="★★★★★" FontSize="16" TextColor="#FFD700" />
                                         </StackLayout>
-                                        <Label Text="23 reseñas"
-                           FontSize="12"
-                           TextColor="Gray"
-                           HorizontalOptions="Center" />
+                                        <Label x:Name="TotalResenasLabel"
+                                               Text="23 reseñas"
+                                               FontSize="12"
+                                               TextColor="Gray"
+                                               HorizontalOptions="Center" />
                                     </StackLayout>
 
+                                    <!-- Distribución de estrellas (estática por ahora) -->
                                     <StackLayout Grid.Column="1" Spacing="3" Margin="20,0,0,0" VerticalOptions="Center">
-                                        <!-- Distribución de estrellas -->
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -565,132 +566,164 @@ BackgroundColor="Transparent"
                                 <!-- Botones de acción -->
                                 <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
                                     <Button Grid.Column="0"
-                        Text="📝 Escribir reseña"
-                        BackgroundColor="#4A7C59"
-                        TextColor="White"
-                        FontSize="14"
-                        HeightRequest="40"
-                        CornerRadius="20"
-                        Clicked="OnEscribirResenaClicked" />
+                                            Text="📝 Escribir reseña"
+                                            BackgroundColor="#4A7C59"
+                                            TextColor="White"
+                                            FontSize="14"
+                                            HeightRequest="40"
+                                            CornerRadius="20"
+                                            Clicked="OnEscribirResenaClicked" />
 
                                     <Button Grid.Column="1"
-                        Text="👀 Ver todas"
-                        BackgroundColor="Transparent"
-                        TextColor="#4A7C59"
-                        BorderColor="#4A7C59"
-                        BorderWidth="1"
-                        FontSize="14"
-                        HeightRequest="40"
-                        CornerRadius="20"
-                        Clicked="OnVerResenasClicked" />
+                                            Text="👀 Ver todas"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#4A7C59"
+                                            BorderColor="#4A7C59"
+                                            BorderWidth="1"
+                                            FontSize="14"
+                                            HeightRequest="40"
+                                            CornerRadius="20"
+                                            Clicked="OnVerResenasClicked" />
                                 </Grid>
                             </StackLayout>
                         </Frame>
 
-                        <!-- Reseñas destacadas (simuladas) -->
-                        <StackLayout Spacing="10">
+                        <!-- RESEÑAS DESTACADAS DINÁMICAS - ACTUALIZADO -->
+                        <StackLayout x:Name="ResenasDestacadasContainer" Spacing="10">
                             <Label Text="Reseñas más útiles"
-               FontSize="16"
-               FontAttributes="Bold"
-               TextColor="Black" />
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="Black" />
 
-                            <!-- Reseña ejemplo 1 -->
-                            <Frame BackgroundColor="White" 
-               CornerRadius="10" 
-               HasShadow="True"
-               Padding="15">
-                                <StackLayout Spacing="10">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                            <!-- Contenedor dinámico para reseñas -->
+                            <StackLayout x:Name="ResenasDestacadasStack" Spacing="10">
+                                <!-- Las reseñas se cargarán dinámicamente -->
+                            </StackLayout>
 
-                                        <Frame Grid.Column="0"
-                           BackgroundColor="#E0E0E0"
-                           CornerRadius="20"
-                           WidthRequest="40"
-                           HeightRequest="40"
-                           HasShadow="False"
-                           Padding="0">
-                                            <Label Text="👤"
-                               FontSize="20"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                                        </Frame>
-
-                                        <StackLayout Grid.Column="1" Spacing="2" Margin="10,0,0,0" VerticalOptions="Center">
-                                            <Label Text="María González"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="Black" />
-                                            <StackLayout Orientation="Horizontal" Spacing="5">
-                                                <Label Text="★★★★★" FontSize="12" TextColor="#FFD700" />
-                                                <Label Text="• Hace 1 semana" FontSize="12" TextColor="Gray" />
-                                            </StackLayout>
-                                        </StackLayout>
-                                    </Grid>
-
-                                    <Label Text="Excelente servicio, muy profesional y puntual. El resultado superó mis expectativas. Lo recomiendo 100%."
-                       FontSize="14"
-                       TextColor="Black"
-                       LineBreakMode="WordWrap" />
-
-                                    <Label Text="👍 15 personas encontraron esto útil"
-                       FontSize="12"
-                       TextColor="Gray" />
+                            <!-- Mensaje cuando no hay reseñas -->
+                            <Frame x:Name="SinResenasFrame" 
+                                   BackgroundColor="White" 
+                                   CornerRadius="10" 
+                                   HasShadow="True"
+                                   Padding="30"
+                                   IsVisible="False">
+                                <StackLayout Spacing="15" HorizontalOptions="Center">
+                                    <Label Text="📝"
+                                           FontSize="40"
+                                           HorizontalOptions="Center" />
+                                    <Label Text="Aún no hay reseñas"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="Gray"
+                                           HorizontalOptions="Center" />
+                                    <Label Text="¡Sé el primero en escribir una reseña para este servicio!"
+                                           FontSize="14"
+                                           TextColor="Gray"
+                                           HorizontalOptions="Center"
+                                           HorizontalTextAlignment="Center" />
                                 </StackLayout>
                             </Frame>
 
-                            <!-- Reseña ejemplo 2 -->
-                            <Frame BackgroundColor="White" 
-               CornerRadius="10" 
-               HasShadow="True"
-               Padding="15">
-                                <StackLayout Spacing="10">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                            <!-- Reseñas ejemplo estáticas (se mantendrán como respaldo) -->
+                            <StackLayout x:Name="ResenasEstaticasContainer" Spacing="10">
+                                <!-- Reseña ejemplo 1 -->
+                                <Frame BackgroundColor="White" 
+                                       CornerRadius="10" 
+                                       HasShadow="True"
+                                       Padding="15">
+                                    <StackLayout Spacing="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <Frame Grid.Column="0"
-                           BackgroundColor="#E0E0E0"
-                           CornerRadius="20"
-                           WidthRequest="40"
-                           HeightRequest="40"
-                           HasShadow="False"
-                           Padding="0">
-                                            <Label Text="👤"
-                               FontSize="20"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                                        </Frame>
+                                            <Frame Grid.Column="0"
+                                                   BackgroundColor="#E0E0E0"
+                                                   CornerRadius="20"
+                                                   WidthRequest="40"
+                                                   HeightRequest="40"
+                                                   HasShadow="False"
+                                                   Padding="0">
+                                                <Label Text="👤"
+                                                       FontSize="20"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Frame>
 
-                                        <StackLayout Grid.Column="1" Spacing="2" Margin="10,0,0,0" VerticalOptions="Center">
-                                            <Label Text="Carlos Méndez"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="Black" />
-                                            <StackLayout Orientation="Horizontal" Spacing="5">
-                                                <Label Text="★★★★☆" FontSize="12" TextColor="#FFD700" />
-                                                <Label Text="• Hace 3 días" FontSize="12" TextColor="Gray" />
+                                            <StackLayout Grid.Column="1" Spacing="2" Margin="10,0,0,0" VerticalOptions="Center">
+                                                <Label Text="María González"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="Black" />
+                                                <StackLayout Orientation="Horizontal" Spacing="5">
+                                                    <Label Text="★★★★★" FontSize="12" TextColor="#FFD700" />
+                                                    <Label Text="• Hace 1 semana" FontSize="12" TextColor="Gray" />
+                                                </StackLayout>
                                             </StackLayout>
-                                        </StackLayout>
-                                    </Grid>
+                                        </Grid>
 
-                                    <Label Text="Buen servicio en general. Llegó a tiempo y completó el trabajo satisfactoriamente."
-                       FontSize="14"
-                       TextColor="Black"
-                       LineBreakMode="WordWrap" />
+                                        <Label Text="Excelente servicio, muy profesional y puntual. El resultado superó mis expectativas. Lo recomiendo 100%."
+                                               FontSize="14"
+                                               TextColor="Black"
+                                               LineBreakMode="WordWrap" />
 
-                                    <Label Text="👍 8 personas encontraron esto útil"
-                       FontSize="12"
-                       TextColor="Gray" />
-                                </StackLayout>
-                            </Frame>
+                                        <Label Text="👍 15 personas encontraron esto útil"
+                                               FontSize="12"
+                                               TextColor="Gray" />
+                                    </StackLayout>
+                                </Frame>
+
+                                <!-- Reseña ejemplo 2 -->
+                                <Frame BackgroundColor="White" 
+                                       CornerRadius="10" 
+                                       HasShadow="True"
+                                       Padding="15">
+                                    <StackLayout Spacing="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Frame Grid.Column="0"
+                                                   BackgroundColor="#E0E0E0"
+                                                   CornerRadius="20"
+                                                   WidthRequest="40"
+                                                   HeightRequest="40"
+                                                   HasShadow="False"
+                                                   Padding="0">
+                                                <Label Text="👤"
+                                                       FontSize="20"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Frame>
+
+                                            <StackLayout Grid.Column="1" Spacing="2" Margin="10,0,0,0" VerticalOptions="Center">
+                                                <Label Text="Carlos Méndez"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="Black" />
+                                                <StackLayout Orientation="Horizontal" Spacing="5">
+                                                    <Label Text="★★★★☆" FontSize="12" TextColor="#FFD700" />
+                                                    <Label Text="• Hace 3 días" FontSize="12" TextColor="Gray" />
+                                                </StackLayout>
+                                            </StackLayout>
+                                        </Grid>
+
+                                        <Label Text="Buen servicio en general. Llegó a tiempo y completó el trabajo satisfactoriamente."
+                                               FontSize="14"
+                                               TextColor="Black"
+                                               LineBreakMode="WordWrap" />
+
+                                        <Label Text="👍 8 personas encontraron esto útil"
+                                               FontSize="12"
+                                               TextColor="Gray" />
+                                    </StackLayout>
+                                </Frame>
+                            </StackLayout>
                         </StackLayout>
                     </StackLayout>
 

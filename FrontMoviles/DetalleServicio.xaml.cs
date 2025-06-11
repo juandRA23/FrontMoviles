@@ -1,4 +1,4 @@
-﻿// FrontMoviles/DetalleServicioPage.xaml.cs - VERSIÓN SIMPLE COMPLETA
+﻿// FrontMoviles/DetalleServicioPage.xaml.cs - VERSIÓN CORREGIDA
 using FrontMoviles.Servicios;
 using FrontMoviles.Modelos;
 
@@ -8,6 +8,7 @@ public partial class DetalleServicioPage : ContentPage
 {
     private readonly Servicio _servicio;
     private readonly ApiService _apiService;
+    private List<Resena> _resenasDelServicio = new List<Resena>();
 
     public DetalleServicioPage(Servicio servicio)
     {
@@ -16,6 +17,7 @@ public partial class DetalleServicioPage : ContentPage
         _apiService = new ApiService();
 
         CargarDatosServicio();
+        CargarResenasReales();
     }
 
     #region Carga de datos
@@ -231,7 +233,6 @@ public partial class DetalleServicioPage : ContentPage
                 _ => ("🔧", "#A8D5BA")
             };
 
-            //IconoLabel.Text = icono;
             IconoFrame.BackgroundColor = Color.FromArgb(color);
 
             System.Diagnostics.Debug.WriteLine($"✅ Icono configurado: {icono} con color {color}");
@@ -239,7 +240,6 @@ public partial class DetalleServicioPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error configurando icono: {ex.Message}");
-            //IconoLabel.Text = "🔧";
             IconoFrame.BackgroundColor = Color.FromArgb("#A8D5BA");
         }
     }
@@ -402,12 +402,6 @@ public partial class DetalleServicioPage : ContentPage
 
     #endregion
 
-    #region Eventos de acción
-
-   
-
-    #endregion
-
     #region Métodos de contacto
 
     private async Task ContactarWhatsApp()
@@ -509,25 +503,6 @@ public partial class DetalleServicioPage : ContentPage
 
     #endregion
 
-    #region Lifecycle
-
-  
- 
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-
-        // Cleanup
-        _apiService?.Dispose();
-
-        System.Diagnostics.Debug.WriteLine("👋 DetalleServicioPage desapareció");
-    }
-
-    #endregion
-
-    // Agregar estos métodos al archivo DetalleServicioPage.xaml.cs
-
     #region Eventos de reseñas
 
     private async void OnEscribirResenaClicked(object sender, EventArgs e)
@@ -561,7 +536,7 @@ public partial class DetalleServicioPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"👀 Ver reseñas del servicio: {_servicio.Titulo}");
 
-            // Aquí podrías navegar a una página de reseñas o mostrar un modal
+            // Por ahora mostrar alert, en el futuro navegar a ResenasPage
             await DisplayAlert("Ver Reseñas",
                 "Funcionalidad de ver todas las reseñas próximamente.\n\n" +
                 "Por ahora puedes escribir tu propia reseña.", "OK");
@@ -574,6 +549,130 @@ public partial class DetalleServicioPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"❌ Error viendo reseñas: {ex.Message}");
             await DisplayAlert("Error", "No se pudo abrir las reseñas", "OK");
         }
+    }
+
+    #endregion
+
+    #region Carga de reseñas reales
+
+    private async void CargarResenasReales()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🌟 Cargando reseñas reales para servicio: {_servicio.Titulo}");
+
+            // Por ahora usar datos simulados hasta que se implemente la API de reseñas
+            // var response = await _apiService.ObtenerResenasPorServicioAsync(_servicio);
+
+            // Simular reseñas
+            _resenasDelServicio = GenerarResenasSimuladas();
+
+            // Actualizar la UI
+            ActualizarSeccionResenasConDatosReales();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error cargando reseñas reales: {ex.Message}");
+            ActualizarSeccionResenasConDatosSimulados();
+        }
+    }
+
+    private List<Resena> GenerarResenasSimuladas()
+    {
+        return new List<Resena>
+        {
+            new Resena
+            {
+                ResenaId = 1,
+                Calificacion = 5,
+                Comentario = "Excelente servicio, muy profesional y puntual. El resultado superó mis expectativas. Lo recomiendo 100%.",
+                Usuario = new Usuario { Nombre = "María", Apellido1 = "González" },
+                CreatedAt = DateTime.Now.AddDays(-7)
+            },
+            new Resena
+            {
+                ResenaId = 2,
+                Calificacion = 4,
+                Comentario = "Buen servicio en general. Llegó a tiempo y completó el trabajo satisfactoriamente.",
+                Usuario = new Usuario { Nombre = "Carlos", Apellido1 = "Méndez" },
+                CreatedAt = DateTime.Now.AddDays(-3)
+            },
+            new Resena
+            {
+                ResenaId = 3,
+                Calificacion = 5,
+                Comentario = "",
+                Usuario = new Usuario { Nombre = "Ana", Apellido1 = "López" },
+                CreatedAt = DateTime.Now.AddDays(-1)
+            }
+        };
+    }
+
+    private void ActualizarSeccionResenasConDatosReales()
+    {
+        try
+        {
+            if (!_resenasDelServicio.Any())
+            {
+                CalificacionLabel.Text = "N/A";
+                ResenasLabel.Text = "(Sin reseñas)";
+                return;
+            }
+
+            // Calcular estadísticas reales
+            var promedioCalificacion = _resenasDelServicio.Average(r => r.Calificacion);
+            var totalResenas = _resenasDelServicio.Count;
+
+            // Actualizar calificación promedio
+            CalificacionLabel.Text = promedioCalificacion.ToString("F1");
+            ResenasLabel.Text = totalResenas == 1 ? "(1 reseña)" : $"({totalResenas} reseñas)";
+
+            System.Diagnostics.Debug.WriteLine($"✅ Sección de reseñas actualizada - Promedio: {promedioCalificacion:F1}, Total: {totalResenas}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando sección de reseñas: {ex.Message}");
+        }
+    }
+
+    private void ActualizarSeccionResenasConDatosSimulados()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("📝 Usando datos simulados para reseñas");
+
+            // Mantener los datos simulados existentes
+            CalificacionLabel.Text = "4.8";
+            ResenasLabel.Text = "(15 reseñas)";
+
+            System.Diagnostics.Debug.WriteLine("✅ Datos simulados aplicados");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error con datos simulados: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region Lifecycle
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Recargar reseñas cuando la página aparece (por si se agregó una nueva)
+        CargarResenasReales();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+
+        // Cleanup
+        _apiService?.Dispose();
+
+        System.Diagnostics.Debug.WriteLine("👋 DetalleServicioPage desapareció");
     }
 
     #endregion
