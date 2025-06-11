@@ -537,12 +537,12 @@ public partial class DetalleServicioPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"👀 Ver reseñas del servicio: {_servicio.Titulo}");
 
             // Por ahora mostrar alert, en el futuro navegar a ResenasPage
-            await DisplayAlert("Ver Reseñas",
-                "Funcionalidad de ver todas las reseñas próximamente.\n\n" +
-                "Por ahora puedes escribir tu propia reseña.", "OK");
+           // await DisplayAlert("Ver Reseñas",
+                //"Funcionalidad de ver todas las reseñas próximamente.\n\n" +
+               // "Por ahora puedes escribir tu propia reseña.", "OK");
 
             // Futura implementación:
-            // await Navigation.PushAsync(new ResenasPage(_servicio));
+             await Navigation.PushAsync(new ResenasPage(_servicio));
         }
         catch (Exception ex)
         {
@@ -561,51 +561,36 @@ public partial class DetalleServicioPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"🌟 Cargando reseñas reales para servicio: {_servicio.Titulo}");
 
-            // Por ahora usar datos simulados hasta que se implemente la API de reseñas
-            // var response = await _apiService.ObtenerResenasPorServicioAsync(_servicio);
+            // ✅ LLAMAR A LA API REAL EN LUGAR DE DATOS SIMULADOS
+            var response = await _apiService.ObtenerResenasPorServicioAsync(_servicio);
 
-            // Simular reseñas
-            _resenasDelServicio = GenerarResenasSimuladas();
+            if (response.Resultado && response.Resenas != null)
+            {
+                // Usar datos reales de la API
+                _resenasDelServicio = response.Resenas;
+                System.Diagnostics.Debug.WriteLine($"✅ {_resenasDelServicio.Count} reseñas reales cargadas");
+            }
+            else
+            {
+                // Si no hay reseñas o hay error, inicializar lista vacía
+                _resenasDelServicio = new List<Resena>();
+                var errorMsg = response.Error?.FirstOrDefault()?.Message ?? "No se encontraron reseñas";
+                System.Diagnostics.Debug.WriteLine($"⚠️ {errorMsg}");
+            }
 
-            // Actualizar la UI
+            // Actualizar la UI con los datos reales
             ActualizarSeccionResenasConDatosReales();
+            ActualizarResenasDestacadas();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error cargando reseñas reales: {ex.Message}");
-            ActualizarSeccionResenasConDatosSimulados();
-        }
-    }
 
-    private List<Resena> GenerarResenasSimuladas()
-    {
-        return new List<Resena>
-        {
-            new Resena
-            {
-                ResenaId = 1,
-                Calificacion = 5,
-                Comentario = "Excelente servicio, muy profesional y puntual. El resultado superó mis expectativas. Lo recomiendo 100%.",
-                Usuario = new Usuario { Nombre = "María", Apellido1 = "González" },
-                CreatedAt = DateTime.Now.AddDays(-7)
-            },
-            new Resena
-            {
-                ResenaId = 2,
-                Calificacion = 4,
-                Comentario = "Buen servicio en general. Llegó a tiempo y completó el trabajo satisfactoriamente.",
-                Usuario = new Usuario { Nombre = "Carlos", Apellido1 = "Méndez" },
-                CreatedAt = DateTime.Now.AddDays(-3)
-            },
-            new Resena
-            {
-                ResenaId = 3,
-                Calificacion = 5,
-                Comentario = "",
-                Usuario = new Usuario { Nombre = "Ana", Apellido1 = "López" },
-                CreatedAt = DateTime.Now.AddDays(-1)
-            }
-        };
+            // En caso de error, mostrar datos vacíos
+            _resenasDelServicio = new List<Resena>();
+            ActualizarSeccionResenasConDatosReales();
+            ActualizarResenasDestacadas();
+        }
     }
 
     private void ActualizarSeccionResenasConDatosReales()
@@ -614,8 +599,10 @@ public partial class DetalleServicioPage : ContentPage
         {
             if (!_resenasDelServicio.Any())
             {
+                // No hay reseñas
                 CalificacionLabel.Text = "N/A";
                 ResenasLabel.Text = "(Sin reseñas)";
+                System.Diagnostics.Debug.WriteLine("📊 Sin reseñas para mostrar");
                 return;
             }
 
@@ -625,32 +612,162 @@ public partial class DetalleServicioPage : ContentPage
 
             // Actualizar calificación promedio
             CalificacionLabel.Text = promedioCalificacion.ToString("F1");
-            ResenasLabel.Text = totalResenas == 1 ? "(1 reseña)" : $"({totalResenas} reseñas)";
 
-            System.Diagnostics.Debug.WriteLine($"✅ Sección de reseñas actualizada - Promedio: {promedioCalificacion:F1}, Total: {totalResenas}");
+            // Actualizar texto de reseñas
+            ResenasLabel.Text = totalResenas == 1
+                ? "(1 reseña)"
+                : $"({totalResenas} reseñas)";
+
+            System.Diagnostics.Debug.WriteLine($"✅ Estadísticas actualizadas - Promedio: {promedioCalificacion:F1}, Total: {totalResenas}");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error actualizando sección de reseñas: {ex.Message}");
+
+            // Mostrar valores por defecto en caso de error
+            CalificacionLabel.Text = "N/A";
+            ResenasLabel.Text = "(Error)";
         }
     }
 
-    private void ActualizarSeccionResenasConDatosSimulados()
+    private void ActualizarResenasDestacadas()
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("📝 Usando datos simulados para reseñas");
+            // Limpiar contenedor de reseñas destacadas
+            ResenasDestacadasStack.Children.Clear();
 
-            // Mantener los datos simulados existentes
-            CalificacionLabel.Text = "4.8";
-            ResenasLabel.Text = "(15 reseñas)";
+            if (!_resenasDelServicio.Any())
+            {
+                // Mostrar mensaje de sin reseñas
+                SinResenasFrame.IsVisible = true;
+                ResenasDestacadasContainer.IsVisible = true;
+                System.Diagnostics.Debug.WriteLine("📝 Mostrando mensaje de sin reseñas");
+                return;
+            }
 
-            System.Diagnostics.Debug.WriteLine("✅ Datos simulados aplicados");
+            // Ocultar mensaje de sin reseñas
+            SinResenasFrame.IsVisible = false;
+
+            // Obtener las 2 reseñas más útiles (con comentario y calificación alta)
+            var resenasDestacadas = _resenasDelServicio
+                .Where(r => !string.IsNullOrWhiteSpace(r.Comentario)) // Solo con comentario
+                .OrderByDescending(r => r.Calificacion) // Ordenar por calificación
+                .ThenByDescending(r => r.CreatedAt) // Luego por fecha
+                .Take(2) // Tomar máximo 2
+                .ToList();
+
+            foreach (var resena in resenasDestacadas)
+            {
+                var resenaFrame = CrearFrameResenaDestacada(resena);
+                ResenasDestacadasStack.Children.Add(resenaFrame);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"✅ {resenasDestacadas.Count} reseñas destacadas mostradas");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error con datos simulados: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando reseñas destacadas: {ex.Message}");
         }
+    }
+
+    private Frame CrearFrameResenaDestacada(Resena resena)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            CornerRadius = 10,
+            HasShadow = true,
+            Padding = 15,
+            Margin = new Thickness(0, 5)
+        };
+
+        var stackLayout = new StackLayout { Spacing = 10 };
+
+        // Header con usuario y calificación
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+        {
+            new ColumnDefinition { Width = GridLength.Star },
+            new ColumnDefinition { Width = GridLength.Auto }
+        }
+        };
+
+        // Nombre del usuario
+        var nombreUsuario = $"{resena.Usuario?.Nombre} {resena.Usuario?.Apellido1}".Trim();
+        if (string.IsNullOrWhiteSpace(nombreUsuario))
+            nombreUsuario = "Usuario";
+
+        var usuarioLabel = new Label
+        {
+            Text = nombreUsuario,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.Black,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        // Estrellas de calificación
+        var estrellasLabel = new Label
+        {
+            Text = GenerarEstrellas(resena.Calificacion),
+            FontSize = 14,
+            TextColor = Color.FromArgb("#FFD700"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        headerGrid.Children.Add(usuarioLabel);
+        Grid.SetColumn(usuarioLabel, 0);
+        headerGrid.Children.Add(estrellasLabel);
+        Grid.SetColumn(estrellasLabel, 1);
+
+        stackLayout.Children.Add(headerGrid);
+
+        // Comentario
+        if (!string.IsNullOrWhiteSpace(resena.Comentario))
+        {
+            var comentarioLabel = new Label
+            {
+                Text = resena.Comentario,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#666666"),
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            stackLayout.Children.Add(comentarioLabel);
+        }
+
+        // Fecha
+        var fechaLabel = new Label
+        {
+            Text = CalcularTiempoTranscurrido(resena.CreatedAt),
+            FontSize = 11,
+            TextColor = Color.FromArgb("#999999"),
+            HorizontalOptions = LayoutOptions.End
+        };
+        stackLayout.Children.Add(fechaLabel);
+
+        frame.Content = stackLayout;
+        return frame;
+    }
+
+    private string GenerarEstrellas(int calificacion)
+    {
+        return string.Concat(Enumerable.Repeat("★", calificacion)) +
+               string.Concat(Enumerable.Repeat("☆", 5 - calificacion));
+    }
+
+    private string CalcularTiempoTranscurrido(DateTime fecha)
+    {
+        var diferencia = DateTime.Now - fecha;
+
+        if (diferencia.TotalDays >= 1)
+            return $"Hace {(int)diferencia.TotalDays} día{(diferencia.TotalDays >= 2 ? "s" : "")}";
+        else if (diferencia.TotalHours >= 1)
+            return $"Hace {(int)diferencia.TotalHours} hora{(diferencia.TotalHours >= 2 ? "s" : "")}";
+        else
+            return "Hace menos de 1 hora";
     }
 
     #endregion

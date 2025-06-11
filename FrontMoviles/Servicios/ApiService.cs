@@ -1547,6 +1547,8 @@ namespace FrontMoviles.Servicios
         #region Método para Listar Reseñas por Servicio
 
         // Método para obtener reseñas de un servicio específico
+        // Completar el método en FrontMoviles/Servicios/ApiService.cs
+
         public async Task<ResListarResenasPorServicio> ObtenerResenasPorServicioAsync(Servicio servicio)
         {
             try
@@ -1567,7 +1569,6 @@ namespace FrontMoviles.Servicios
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 });
 
-                // Log para debugging
                 System.Diagnostics.Debug.WriteLine($"📄 Request JSON: {json}");
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -1578,7 +1579,6 @@ namespace FrontMoviles.Servicios
                 // Leer la respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                // Log para debugging
                 System.Diagnostics.Debug.WriteLine($"📊 Response Status: {response.StatusCode}");
                 System.Diagnostics.Debug.WriteLine($"📄 Response Content: {responseContent}");
 
@@ -1602,35 +1602,36 @@ namespace FrontMoviles.Servicios
                         System.Diagnostics.Debug.WriteLine($"✅ Reseñas obtenidas: {result.Resenas?.Count ?? 0}");
                         return result;
                     }
-                    catch (JsonException jsonEx)
+                    catch (JsonException ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"❌ Error JSON: {jsonEx.Message}");
-                        return CreateListarResenasErrorResponse($"Error al procesar respuesta del servidor: {jsonEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"❌ Error deserializando respuesta: {ex.Message}");
+                        return CreateListarResenasErrorResponse($"Error procesando respuesta: {ex.Message}");
                     }
                 }
                 else
                 {
-                    // Intentar deserializar el error
+                    // Manejar errores HTTP
+                    string errorMessage = $"Error del servidor ({response.StatusCode})";
+
                     try
                     {
-                        var options = new JsonSerializerOptions
+                        var errorResponse = JsonSerializer.Deserialize<ResListarResenasPorServicio>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true,
-                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-                        };
+                            PropertyNameCaseInsensitive = true
+                        });
 
-                        var errorResult = JsonSerializer.Deserialize<ResListarResenasPorServicio>(responseContent, options);
-                        if (errorResult != null)
+                        if (errorResponse?.Error?.Any() == true)
                         {
-                            return errorResult;
+                            errorMessage = errorResponse.Error.First().Message;
                         }
                     }
                     catch
                     {
-                        // Si no se puede deserializar, crear error genérico
+                        // Si no se puede deserializar el error, usar mensaje genérico
                     }
 
-                    return CreateListarResenasErrorResponse($"Error del servidor ({response.StatusCode}): {responseContent}");
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP: {errorMessage}");
+                    return CreateListarResenasErrorResponse(errorMessage);
                 }
             }
             catch (HttpRequestException ex)
@@ -1650,7 +1651,6 @@ namespace FrontMoviles.Servicios
             }
         }
 
-        // Método auxiliar para crear respuestas de error
         private ResListarResenasPorServicio CreateListarResenasErrorResponse(string message)
         {
             return new ResListarResenasPorServicio
@@ -1660,7 +1660,6 @@ namespace FrontMoviles.Servicios
                 Error = new List<ErrorItem> { new ErrorItem { ErrorCode = -1, Message = message } }
             };
         }
-
         #endregion
     }
 }

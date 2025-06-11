@@ -70,6 +70,9 @@
 		<Compile Update="InicioPage.xaml.cs">
 			<DependentUpon>InicioPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="ResenasPage.xaml.cs">
+		  <DependentUpon>ResenasPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="ServiciosPage.xaml.cs">
 		  <DependentUpon>ServiciosPage.xaml</DependentUpon>
 		</Compile>
@@ -97,7 +100,7 @@
 		<MauiXaml Update="InicioPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
-		<MauiXaml Update="ResenaPage.xaml">
+		<MauiXaml Update="ResenasPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="ServiciosPage.xaml">
