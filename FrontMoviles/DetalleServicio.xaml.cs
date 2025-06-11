@@ -70,8 +70,8 @@ public partial class DetalleServicioPage : ContentPage
             ConfigurarIconoCategoria();
 
             // Calificación (simulada por ahora)
-            CalificacionLabel.Text = "4.8";
-            ResenasLabel.Text = "(15 reseñas)";
+            //CalificacionLabel.Text = "4.8";
+           // ResenasLabel.Text = "(15 reseñas)";
 
             System.Diagnostics.Debug.WriteLine("✅ Información básica cargada");
         }
@@ -559,16 +559,25 @@ public partial class DetalleServicioPage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"🌟 Cargando reseñas reales para servicio: {_servicio.Titulo}");
+            System.Diagnostics.Debug.WriteLine($"🌟 INICIO - Cargando reseñas para servicio: {_servicio.Titulo}");
 
-            // ✅ LLAMAR A LA API REAL EN LUGAR DE DATOS SIMULADOS
+            // ✅ LLAMAR A LA API REAL
             var response = await _apiService.ObtenerResenasPorServicioAsync(_servicio);
+
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - Response.Resultado: {response.Resultado}");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - Response.Resenas count: {response.Resenas?.Count ?? 0}");
 
             if (response.Resultado && response.Resenas != null)
             {
                 // Usar datos reales de la API
                 _resenasDelServicio = response.Resenas;
                 System.Diagnostics.Debug.WriteLine($"✅ {_resenasDelServicio.Count} reseñas reales cargadas");
+
+                // 🔍 DEBUG - Mostrar cada reseña
+                foreach (var resena in _resenasDelServicio)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   📝 Reseña: Calificación={resena.Calificacion}, Usuario={resena.Usuario?.Nombre}, Comentario='{resena.Comentario}'");
+                }
             }
             else
             {
@@ -578,18 +587,39 @@ public partial class DetalleServicioPage : ContentPage
                 System.Diagnostics.Debug.WriteLine($"⚠️ {errorMsg}");
             }
 
-            // Actualizar la UI con los datos reales
-            ActualizarSeccionResenasConDatosReales();
-            ActualizarResenasDestacadas();
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - _resenasDelServicio.Count FINAL: {_resenasDelServicio.Count}");
+
+            // ✅ FORZAR actualización en el hilo principal
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("🔄 Actualizando UI en hilo principal...");
+                    ActualizarSeccionResenasConDatosReales();
+                    ActualizarResenasDestacadas();
+                    ActualizarDistribucionEstrellas(); // ✅ AGREGADO
+                    System.Diagnostics.Debug.WriteLine("✅ UI actualizada correctamente");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error actualizando UI: {ex.Message}");
+                }
+            });
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error cargando reseñas reales: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ EXCEPCIÓN en CargarResenasReales: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ StackTrace: {ex.StackTrace}");
 
             // En caso de error, mostrar datos vacíos
             _resenasDelServicio = new List<Resena>();
-            ActualizarSeccionResenasConDatosReales();
-            ActualizarResenasDestacadas();
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                ActualizarSeccionResenasConDatosReales();
+                ActualizarResenasDestacadas();
+                ActualizarDistribucionEstrellas(); // ✅ AGREGADO TAMBIÉN AQUÍ
+            });
         }
     }
 
@@ -597,36 +627,61 @@ public partial class DetalleServicioPage : ContentPage
     {
         try
         {
-            if (!_resenasDelServicio.Any())
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - ActualizarSeccionResenasConDatosReales INICIO");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - _resenasDelServicio es null: {_resenasDelServicio == null}");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - _resenasDelServicio.Count: {_resenasDelServicio?.Count ?? 0}");
+
+            if (_resenasDelServicio == null || !_resenasDelServicio.Any())
             {
                 // No hay reseñas
+                System.Diagnostics.Debug.WriteLine("📊 Sin reseñas - Estableciendo N/A");
                 CalificacionLabel.Text = "N/A";
                 ResenasLabel.Text = "(Sin reseñas)";
-                System.Diagnostics.Debug.WriteLine("📊 Sin reseñas para mostrar");
+
+                // También actualizar los labels de la sección grande
+                if (CalificacionPromedioLabel != null)
+                    CalificacionPromedioLabel.Text = "N/A";
+                if (TotalResenasLabel != null)
+                    TotalResenasLabel.Text = "Sin reseñas";
+
                 return;
             }
 
-            // Calcular estadísticas reales
+            // ✅ CALCULAR estadísticas reales
             var promedioCalificacion = _resenasDelServicio.Average(r => r.Calificacion);
             var totalResenas = _resenasDelServicio.Count;
 
-            // Actualizar calificación promedio
-            CalificacionLabel.Text = promedioCalificacion.ToString("F1");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - Promedio calculado: {promedioCalificacion}");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - Total reseñas: {totalResenas}");
 
-            // Actualizar texto de reseñas
+            // ✅ ACTUALIZAR todos los labels
+            CalificacionLabel.Text = promedioCalificacion.ToString("F1");
             ResenasLabel.Text = totalResenas == 1
                 ? "(1 reseña)"
                 : $"({totalResenas} reseñas)";
 
-            System.Diagnostics.Debug.WriteLine($"✅ Estadísticas actualizadas - Promedio: {promedioCalificacion:F1}, Total: {totalResenas}");
+            // También actualizar los labels de la sección grande
+            if (CalificacionPromedioLabel != null)
+                CalificacionPromedioLabel.Text = promedioCalificacion.ToString("F1");
+            if (TotalResenasLabel != null)
+                TotalResenasLabel.Text = totalResenas == 1
+                    ? "1 reseña"
+                    : $"{totalResenas} reseñas";
+
+            System.Diagnostics.Debug.WriteLine($"✅ Labels actualizados - Promedio: {promedioCalificacion:F1}, Total: {totalResenas}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando sección de reseñas: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ EXCEPCIÓN en ActualizarSeccionResenasConDatosReales: {ex.Message}");
 
             // Mostrar valores por defecto en caso de error
-            CalificacionLabel.Text = "N/A";
+            CalificacionLabel.Text = "ERROR";
             ResenasLabel.Text = "(Error)";
+
+            if (CalificacionPromedioLabel != null)
+                CalificacionPromedioLabel.Text = "ERROR";
+            if (TotalResenasLabel != null)
+                TotalResenasLabel.Text = "Error";
         }
     }
 
@@ -649,25 +704,158 @@ public partial class DetalleServicioPage : ContentPage
             // Ocultar mensaje de sin reseñas
             SinResenasFrame.IsVisible = false;
 
-            // Obtener las 2 reseñas más útiles (con comentario y calificación alta)
-            var resenasDestacadas = _resenasDelServicio
+            // ✅ CAMBIAR: Obtener las 2 reseñas MÁS RECIENTES (en lugar de más útiles)
+            var resenasRecientes = _resenasDelServicio
                 .Where(r => !string.IsNullOrWhiteSpace(r.Comentario)) // Solo con comentario
-                .OrderByDescending(r => r.Calificacion) // Ordenar por calificación
-                .ThenByDescending(r => r.CreatedAt) // Luego por fecha
+                .OrderByDescending(r => r.CreatedAt) // ✅ ORDENAR POR FECHA (más reciente primero)
                 .Take(2) // Tomar máximo 2
                 .ToList();
 
-            foreach (var resena in resenasDestacadas)
+            foreach (var resena in resenasRecientes)
             {
                 var resenaFrame = CrearFrameResenaDestacada(resena);
                 ResenasDestacadasStack.Children.Add(resenaFrame);
             }
 
-            System.Diagnostics.Debug.WriteLine($"✅ {resenasDestacadas.Count} reseñas destacadas mostradas");
+            System.Diagnostics.Debug.WriteLine($"✅ {resenasRecientes.Count} reseñas recientes mostradas");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando reseñas destacadas: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando reseñas recientes: {ex.Message}");
+        }
+    }
+
+    private void ActualizarDistribucionEstrellas()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("📊 Actualizando distribución de estrellas...");
+
+            if (_resenasDelServicio == null || !_resenasDelServicio.Any())
+            {
+                // Si no hay reseñas, resetear todas las barras
+                System.Diagnostics.Debug.WriteLine("📊 No hay reseñas - reseteando barras");
+                ResetearBarras();
+                return;
+            }
+
+            // Calcular distribución real de calificaciones
+            var distribucion = new int[6]; // índices 1-5 para estrellas 1-5
+
+            foreach (var resena in _resenasDelServicio)
+            {
+                if (resena.Calificacion >= 1 && resena.Calificacion <= 5)
+                {
+                    distribucion[resena.Calificacion]++;
+                }
+            }
+
+            var totalResenas = _resenasDelServicio.Count;
+
+            System.Diagnostics.Debug.WriteLine($"📊 Distribución real:");
+            System.Diagnostics.Debug.WriteLine($"   5★: {distribucion[5]} ({(distribucion[5] * 100.0 / totalResenas):F1}%)");
+            System.Diagnostics.Debug.WriteLine($"   4★: {distribucion[4]} ({(distribucion[4] * 100.0 / totalResenas):F1}%)");
+            System.Diagnostics.Debug.WriteLine($"   3★: {distribucion[3]} ({(distribucion[3] * 100.0 / totalResenas):F1}%)");
+            System.Diagnostics.Debug.WriteLine($"   2★: {distribucion[2]} ({(distribucion[2] * 100.0 / totalResenas):F1}%)");
+            System.Diagnostics.Debug.WriteLine($"   1★: {distribucion[1]} ({(distribucion[1] * 100.0 / totalResenas):F1}%)");
+
+            // ✅ ACTUALIZAR las barras visuales y contadores
+            ActualizarBarrasVisuales(distribucion, totalResenas);
+
+            System.Diagnostics.Debug.WriteLine("✅ Distribución de estrellas y barras actualizadas");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error calculando distribución: {ex.Message}");
+            ResetearBarras();
+        }
+    }
+
+    private void ActualizarBarrasVisuales(int[] distribucion, int totalResenas)
+    {
+        try
+        {
+            var maxWidth = 100.0; // Ancho máximo de la barra en píxeles
+            var maxCount = distribucion.Max(); // El mayor número de reseñas para normalizar
+
+            // Si todas las barras están en 0, no hacer nada
+            if (maxCount == 0)
+            {
+                ResetearBarras();
+                return;
+            }
+
+            // Actualizar cada barra y contador
+            ActualizarBarraIndividual(Barra5Estrellas, Contador5Estrellas, distribucion[5], maxCount, maxWidth);
+            ActualizarBarraIndividual(Barra4Estrellas, Contador4Estrellas, distribucion[4], maxCount, maxWidth);
+            ActualizarBarraIndividual(Barra3Estrellas, Contador3Estrellas, distribucion[3], maxCount, maxWidth);
+            ActualizarBarraIndividual(Barra2Estrellas, Contador2Estrellas, distribucion[2], maxCount, maxWidth);
+            ActualizarBarraIndividual(Barra1Estrella, Contador1Estrella, distribucion[1], maxCount, maxWidth);
+
+            System.Diagnostics.Debug.WriteLine($"✅ Barras visuales actualizadas - MaxCount: {maxCount}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando barras visuales: {ex.Message}");
+        }
+    }
+
+    private void ActualizarBarraIndividual(Frame barra, Label contador, int cantidad, int maxCount, double maxWidth)
+    {
+        try
+        {
+            if (barra == null || contador == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ Barra o contador es null - elementos no encontrados en XAML");
+                return;
+            }
+
+            // Actualizar contador
+            contador.Text = cantidad.ToString();
+
+            // Calcular ancho proporcional
+            double ancho = cantidad > 0 && maxCount > 0
+                ? (cantidad * maxWidth / maxCount)
+                : 0;
+
+            // Mínimo ancho visible si hay al menos 1
+            if (cantidad > 0 && ancho < 5)
+                ancho = 5;
+
+            // Actualizar ancho de la barra
+            barra.WidthRequest = ancho;
+
+            System.Diagnostics.Debug.WriteLine($"   🔸 Barra actualizada: cantidad={cantidad}, ancho={ancho:F1}px");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error actualizando barra individual: {ex.Message}");
+        }
+    }
+
+    private void ResetearBarras()
+    {
+        try
+        {
+            // Resetear todas las barras a 0
+            if (Barra5Estrellas != null) Barra5Estrellas.WidthRequest = 0;
+            if (Barra4Estrellas != null) Barra4Estrellas.WidthRequest = 0;
+            if (Barra3Estrellas != null) Barra3Estrellas.WidthRequest = 0;
+            if (Barra2Estrellas != null) Barra2Estrellas.WidthRequest = 0;
+            if (Barra1Estrella != null) Barra1Estrella.WidthRequest = 0;
+
+            // Resetear todos los contadores a 0
+            if (Contador5Estrellas != null) Contador5Estrellas.Text = "0";
+            if (Contador4Estrellas != null) Contador4Estrellas.Text = "0";
+            if (Contador3Estrellas != null) Contador3Estrellas.Text = "0";
+            if (Contador2Estrellas != null) Contador2Estrellas.Text = "0";
+            if (Contador1Estrella != null) Contador1Estrella.Text = "0";
+
+            System.Diagnostics.Debug.WriteLine("🔄 Barras reseteadas a 0");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error reseteando barras: {ex.Message}");
         }
     }
 
