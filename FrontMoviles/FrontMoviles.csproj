@@ -85,6 +85,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="ChatPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="ConversationsListPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="CrearResenaPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

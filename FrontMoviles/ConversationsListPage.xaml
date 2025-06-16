@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FrontMoviles.ConversationsListPage"
+             Title="Mis Conversaciones"
+             BackgroundColor="#F8F9FA"
+             Shell.NavBarIsVisible="True">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Frame Grid.Row="0" 
+               BackgroundColor="#4A7C59"
+               CornerRadius="0"
+               HasShadow="True"
+               Padding="20,15">
+            <StackLayout>
+                <Label Text="Mis Conversaciones"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center" />
+                <Label Text="Toca una conversación para continuar chateando"
+                       FontSize="14"
+                       TextColor="#B8D4C1"
+                       HorizontalOptions="Center" />
+            </StackLayout>
+        </Frame>
+
+        <!-- Contenido principal -->
+        <StackLayout Grid.Row="1" Spacing="0">
+
+            <!-- Lista de conversaciones -->
+            <ScrollView x:Name="ConversationsScrollView"
+                        Padding="0">
+                <StackLayout x:Name="ConversationsContainer" 
+                             Spacing="0"
+                             Padding="15,20">
+                    <!-- Las conversaciones se agregan dinámicamente aquí -->
+                </StackLayout>
+            </ScrollView>
+
+            <!-- Estado vacío -->
+            <StackLayout x:Name="EmptyStateView"
+                         IsVisible="False"
+                         VerticalOptions="CenterAndExpand"
+                         HorizontalOptions="Center"
+                         Padding="40">
+                <Label Text="💬"
+                       FontSize="80"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,20" />
+                <Label Text="No tienes conversaciones aún"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="Gray"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,10" />
+                <Label Text="Cuando contactes a un proveedor de servicios, la conversación aparecerá aquí."
+                       FontSize="16"
+                       TextColor="Gray"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,0,0,30" />
+                <Button Text="Explorar Servicios"
+                        BackgroundColor="#4A7C59"
+                        TextColor="White"
+                        CornerRadius="25"
+                        FontAttributes="Bold"
+                        WidthRequest="200"
+                        Clicked="OnExplorarServiciosClicked" />
+            </StackLayout>
+
+        </StackLayout>
+
+        <!-- Indicador de carga -->
+        <Frame Grid.Row="1" 
+               x:Name="LoadingFrame"
+               BackgroundColor="#80000000"
+               IsVisible="True"
+               VerticalOptions="Center"
+               HorizontalOptions="Center"
+               CornerRadius="10"
+               Padding="30">
+            <StackLayout Orientation="Horizontal" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="White" WidthRequest="30" HeightRequest="30" />
+                <Label Text="Cargando conversaciones..." TextColor="White" FontSize="18" />
+            </StackLayout>
+        </Frame>
+
+        <!-- Botón de actualizar -->
+        <Button Grid.Row="1"
+                x:Name="RefreshButton"
+                Text="🔄"
+                BackgroundColor="#4A7C59"
+                TextColor="White"
+                CornerRadius="30"
+                WidthRequest="60"
+                HeightRequest="60"
+                FontSize="24"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="20"
+                Clicked="OnRefreshClicked"
+                IsVisible="False" />
+    </Grid>
+</ContentPage>

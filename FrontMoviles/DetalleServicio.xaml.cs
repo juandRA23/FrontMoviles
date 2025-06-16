@@ -387,17 +387,203 @@ public partial class DetalleServicioPage : ContentPage
                 return;
             }
 
-            await DisplayAlert("Chat en ServiFlex",
-                "La funcionalidad de chat interno estará disponible próximamente. " +
-                "Por ahora puedes usar WhatsApp, email o llamada directa.", "OK");
+            var usuarioActualId = SessionManager.ObtenerIdUsuario();
 
-            System.Diagnostics.Debug.WriteLine("💭 Chat interno solicitado");
+            // Verificar que el usuario no trate de contactarse a sí mismo
+            if (usuarioActualId == _servicio.Usuario.UsuarioId)
+            {
+                await DisplayAlert("Error", "No puedes iniciar una conversación con tu propio servicio", "OK");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("💭 Iniciando chat interno...");
+
+            // Deshabilitar botón mientras se procesa
+            if (sender is ImageButton btn)
+            {
+                btn.IsEnabled = false;
+            }
+
+            await IniciarOBuscarConversacion();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error en chat interno: {ex.Message}");
             await DisplayAlert("Error", "No se pudo abrir el chat", "OK");
         }
+        finally
+        {
+            // Rehabilitar botón
+            if (sender is ImageButton btn)
+            {
+                btn.IsEnabled = true;
+            }
+        }
+    }
+
+    private async Task IniciarOBuscarConversacion()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🔍 Buscando conversación existente...");
+
+            // Primero intentar buscar si ya existe una conversación
+            var conversacionExistente = await BuscarConversacionExistente();
+
+            if (conversacionExistente != null)
+            {
+                System.Diagnostics.Debug.WriteLine("✅ Conversación existente encontrada");
+                await AbrirChat(conversacionExistente);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("🆕 Creando nueva conversación...");
+                await CrearNuevaConversacion();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"💥 Error al iniciar conversación: {ex.Message}");
+            await DisplayAlert("Error", "Error al iniciar la conversación", "OK");
+        }
+    }
+
+    private async Task<Conversacion> BuscarConversacionExistente()
+    {
+        try
+        {
+            var request = new ReqListarConversacionesPorUsuario
+            {
+                SesionId = SessionManager.ObtenerSessionId()
+            };
+
+            var response = await _apiService.ListarConversacionesPorUsuarioAsync(request);
+
+            if (response.Resultado && response.Conversaciones != null)
+            {
+                // Buscar conversación que involucre este servicio
+                var conversacionExistente = response.Conversaciones.FirstOrDefault(c =>
+                    c.Servicio?.ServicioId == _servicio.ServicioId);
+
+                return conversacionExistente;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error al buscar conversación: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task CrearNuevaConversacion()
+    {
+        try
+        {
+            var usuarioActualId = SessionManager.ObtenerIdUsuario();
+            var usuarioActualEmail = SessionManager.ObtenerEmailUsuario();
+            var usuarioActualNombre = SessionManager.ObtenerNombreUsuario();
+
+            var usuarioActual = new Usuario
+            {
+                UsuarioId = usuarioActualId,
+                Correo = usuarioActualEmail,
+                Nombre = !string.IsNullOrEmpty(usuarioActualNombre) ? usuarioActualNombre : usuarioActualEmail.Split('@')[0],
+                Apellido1 = string.Empty,
+                Apellido2 = string.Empty
+            };
+
+            var nuevaConversacion = new Conversacion
+            {
+                ConversacionId = 0, // Se asigna en el servidor
+                Usuario1 = usuarioActual,
+                Usuario2 = _servicio.Usuario,
+                Servicio = _servicio,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            var request = new ReqInsertarConversacion
+            {
+                SesionId = SessionManager.ObtenerSessionId(),
+                Conversacion = nuevaConversacion
+            };
+
+            System.Diagnostics.Debug.WriteLine($"📤 Creando conversación para servicio: {_servicio.Titulo}");
+
+            var response = await _apiService.InsertarConversacionAsync(request);
+
+            if (response.Resultado)
+            {
+                System.Diagnostics.Debug.WriteLine("✅ Conversación creada exitosamente");
+
+                // Buscar la conversación recién creada para obtener el ID
+                var conversacionCreada = await BuscarConversacionExistente();
+
+                if (conversacionCreada != null)
+                {
+                    await AbrirChat(conversacionCreada);
+                }
+                else
+                {
+                    await DisplayAlert("Error", "No se pudo recuperar la conversación creada", "OK");
+                }
+            }
+            else
+            {
+                var errorMessage = response.Error?.FirstOrDefault()?.Message ?? "Error desconocido";
+                System.Diagnostics.Debug.WriteLine($"❌ Error al crear conversación: {errorMessage}");
+
+                if (EsErrorDeSesion(errorMessage))
+                {
+                    await MostrarErrorSesion();
+                    return;
+                }
+
+                await DisplayAlert("Error", $"No se pudo crear la conversación: {errorMessage}", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"💥 Error al crear conversación: {ex.Message}");
+            await DisplayAlert("Error", "Error al crear la conversación", "OK");
+        }
+    }
+
+    private async Task AbrirChat(Conversacion conversacion)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🚀 Abriendo chat - Conversación ID: {conversacion.ConversacionId}");
+
+            var chatPage = new ChatPage(conversacion);
+            await Navigation.PushAsync(chatPage);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error al abrir chat: {ex.Message}");
+            await DisplayAlert("Error", "No se pudo abrir el chat", "OK");
+        }
+    }
+
+    // Agregar este método también si no existe ya:
+    private static bool EsErrorDeSesion(string errorMessage)
+    {
+        var mensaje = errorMessage.ToLower();
+        return mensaje.Contains("sesion") ||
+               mensaje.Contains("token") ||
+               mensaje.Contains("unauthorized") ||
+               mensaje.Contains("authentication") ||
+               mensaje.Contains("forbidden");
+    }
+
+    private async Task MostrarErrorSesion()
+    {
+        SessionManager.CerrarSesion();
+        await DisplayAlert("Sesión Expirada",
+            "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", "OK");
+        await Shell.Current.GoToAsync("//login");
     }
 
     #endregion

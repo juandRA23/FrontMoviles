@@ -1661,5 +1661,300 @@ namespace FrontMoviles.Servicios
             };
         }
         #endregion
+
+
+        #region Métodos para Conversaciones
+
+        public async Task<ResInsertarConversacion> InsertarConversacionAsync(ReqInsertarConversacion request)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("📡 API: Insertando conversación...");
+
+                // Verificar sesión
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateInsertarConversacionErrorResponse(-10, "No hay sesión activa");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                System.Diagnostics.Debug.WriteLine($"📤 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/conversacion/insertarConversacion", content);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"📥 Response: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = JsonSerializer.Deserialize<ResInsertarConversacion>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Conversación insertada - Resultado: {result?.Resultado}");
+                    return result ?? CreateInsertarConversacionErrorResponse(-6, "Respuesta vacía del servidor");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP {response.StatusCode}: {responseContent}");
+                    return CreateInsertarConversacionErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateInsertarConversacionErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateInsertarConversacionErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 Excepción en InsertarConversacion: {ex.Message}");
+                return CreateInsertarConversacionErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResInsertarConversacion CreateInsertarConversacionErrorResponse(int errorCode, string message)
+        {
+            return new ResInsertarConversacion
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } }
+            };
+        }
+
+        public async Task<ResListarConversacionesPorUsuario> ListarConversacionesPorUsuarioAsync(ReqListarConversacionesPorUsuario request)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("📡 API: Listando conversaciones por usuario...");
+
+                // Verificar sesión
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateListarConversacionesErrorResponse(-10, "No hay sesión activa");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                System.Diagnostics.Debug.WriteLine($"📤 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/conversacion/listarConversacionesPorUsuario", content);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"📥 Response: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = JsonSerializer.Deserialize<ResListarConversacionesPorUsuario>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Conversaciones listadas - Count: {result?.Conversaciones?.Count ?? 0}");
+                    return result ?? CreateListarConversacionesErrorResponse(-6, "Respuesta vacía del servidor");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP {response.StatusCode}: {responseContent}");
+                    return CreateListarConversacionesErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateListarConversacionesErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateListarConversacionesErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 Excepción en ListarConversacionesPorUsuario: {ex.Message}");
+                return CreateListarConversacionesErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResListarConversacionesPorUsuario CreateListarConversacionesErrorResponse(int errorCode, string message)
+        {
+            return new ResListarConversacionesPorUsuario
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Conversaciones = new List<Conversacion>()
+            };
+        }
+
+        #endregion
+
+        #region Métodos para Mensajes
+
+        public async Task<ResInsertarMensaje> InsertarMensajeAsync(ReqInsertarMensaje request)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("📡 API: Insertando mensaje...");
+
+                // Verificar sesión
+                if (!SessionManager.EstaLogueado())
+                {
+                    return CreateInsertarMensajeErrorResponse(-10, "No hay sesión activa");
+                }
+
+                // Configurar autenticación
+                ConfigurarAutenticacion();
+
+                // Asegurar que el SesionId esté en el request
+                request.SesionId = SessionManager.ObtenerSessionId();
+
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                System.Diagnostics.Debug.WriteLine($"📤 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/conversacion/insertarMensaje", content);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"📥 Response: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = JsonSerializer.Deserialize<ResInsertarMensaje>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Mensaje insertado - Resultado: {result?.Resultado}");
+                    return result ?? CreateInsertarMensajeErrorResponse(-6, "Respuesta vacía del servidor");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP {response.StatusCode}: {responseContent}");
+                    return CreateInsertarMensajeErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateInsertarMensajeErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateInsertarMensajeErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 Excepción en InsertarMensaje: {ex.Message}");
+                return CreateInsertarMensajeErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResInsertarMensaje CreateInsertarMensajeErrorResponse(int errorCode, string message)
+        {
+            return new ResInsertarMensaje
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } }
+            };
+        }
+
+        public async Task<ResListarMensajesPorConversacion> ListarMensajesPorConversacionAsync(ReqListarMensajesPorConversacion request)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("📡 API: Listando mensajes por conversación...");
+
+                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                System.Diagnostics.Debug.WriteLine($"📤 Request JSON: {json}");
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/conversacion/listarMensajesPorConversacion", content);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"📥 Response: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = JsonSerializer.Deserialize<ResListarMensajesPorConversacion>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Mensajes listados - Count: {result?.Mensajes?.Count ?? 0}");
+                    return result ?? CreateListarMensajesErrorResponse(-6, "Respuesta vacía del servidor");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error HTTP {response.StatusCode}: {responseContent}");
+                    return CreateListarMensajesErrorResponse((int)response.StatusCode, $"Error del servidor: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error de conexión: {ex.Message}");
+                return CreateListarMensajesErrorResponse(-1, $"Error de conexión: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Timeout: {ex.Message}");
+                return CreateListarMensajesErrorResponse(-2, "Tiempo de espera agotado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 Excepción en ListarMensajesPorConversacion: {ex.Message}");
+                return CreateListarMensajesErrorResponse(-3, $"Error inesperado: {ex.Message}");
+            }
+        }
+
+        private ResListarMensajesPorConversacion CreateListarMensajesErrorResponse(int errorCode, string message)
+        {
+            return new ResListarMensajesPorConversacion
+            {
+                Resultado = false,
+                Error = new List<ErrorItem> { new ErrorItem { ErrorCode = errorCode, Message = message } },
+                Mensajes = new List<Mensaje>()
+            };
+        }
+
+        #endregion
     }
 }

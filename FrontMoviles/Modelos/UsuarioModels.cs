@@ -662,4 +662,137 @@ namespace FrontMoviles.Modelos
     }
 
     #endregion
+
+
+    #region Modelos para Conversaciones
+
+    public class ReqInsertarConversacion
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+
+        [JsonPropertyName("Conversacion")]
+        public Conversacion Conversacion { get; set; }
+    }
+
+    public class ResInsertarConversacion
+    {
+        [JsonPropertyName("mensaje")]
+        public string Mensaje { get; set; }
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    public class ReqListarConversacionesPorUsuario
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+    }
+
+    public class ResListarConversacionesPorUsuario
+    {
+        [JsonPropertyName("Conversaciones")]
+        public List<Conversacion> Conversaciones { get; set; } = new List<Conversacion>();
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
+
+    #region Modelos para Mensajes
+
+    public class ReqInsertarMensaje
+    {
+        [JsonPropertyName("SesionId")]
+        public string SesionId { get; set; }
+
+        [JsonPropertyName("Mensaje")]
+        public Mensaje Mensaje { get; set; }
+    }
+
+    public class ResInsertarMensaje
+    {
+        [JsonPropertyName("mensaje")]
+        public string Mensaje { get; set; }
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    public class ReqListarMensajesPorConversacion
+    {
+        [JsonPropertyName("Conversacion")]
+        public Conversacion Conversacion { get; set; }
+    }
+
+    public class ResListarMensajesPorConversacion
+    {
+        [JsonPropertyName("Mensajes")]
+        public List<Mensaje> Mensajes { get; set; } = new List<Mensaje>();
+
+        [JsonPropertyName("resultado")]
+        public bool Resultado { get; set; }
+
+        [JsonPropertyName("error")]
+        public List<ErrorItem> Error { get; set; } = new List<ErrorItem>();
+    }
+
+    #endregion
+
+    #region Entidades principales para Chat
+
+    public class Conversacion
+    {
+        [JsonPropertyName("ConversacionId")]
+        public int ConversacionId { get; set; }
+
+        [JsonPropertyName("Usuario1")]
+        public Usuario Usuario1 { get; set; }
+
+        [JsonPropertyName("Usuario2")]
+        public Usuario Usuario2 { get; set; }
+
+        [JsonPropertyName("Servicio")]
+        public Servicio Servicio { get; set; }
+
+        [JsonPropertyName("CreatedAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("UpdatedAt")]
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class Mensaje
+    {
+        [JsonPropertyName("MensajeId")]
+        public int MensajeId { get; set; }
+
+        [JsonPropertyName("Conversacion")]
+        public Conversacion Conversacion { get; set; }
+
+        [JsonPropertyName("Usuario")]
+        public Usuario Usuario { get; set; }
+
+        [JsonPropertyName("Contenido")]
+        public string Contenido { get; set; }
+
+        [JsonPropertyName("CreatedAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("UpdatedAt")]
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    #endregion
 }
